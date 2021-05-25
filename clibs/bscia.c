@@ -8,6 +8,7 @@
 /*
  * TODO: initialize interrupts here instead of app thing
  * TODO: configurable RX and TX queue sizes
+ * TODO: configurable SCIA
  */
 //=============================================================================
 /*-------------------------------- Includes ---------------------------------*/
@@ -146,8 +147,8 @@ static void bsciaInitializeHW(void){
 //-----------------------------------------------------------------------------
 static void bsciaInitializeSW(void){
 
-    bsciaRXMailBox = Mailbox_create(sizeof(uint8_t), 50, NULL, NULL);
-    bsciaTXMailBox = Mailbox_create(sizeof(uint8_t), 50, NULL, NULL);
+    bsciaRXMailBox = Mailbox_create(sizeof(uint8_t), BSCIA_CONFIG_RX_BUFFER_SIZE, NULL, NULL);
+    bsciaTXMailBox = Mailbox_create(sizeof(uint8_t), BSCIA_CONFIG_TX_BUFFER_SIZE, NULL, NULL);
 }
 //-----------------------------------------------------------------------------
 //=============================================================================
@@ -178,4 +179,3 @@ void sciaRXISR(UArg arg){
 }
 //-----------------------------------------------------------------------------
 //=============================================================================
-
