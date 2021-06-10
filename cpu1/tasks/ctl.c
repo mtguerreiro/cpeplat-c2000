@@ -23,9 +23,14 @@
 
 /* Device and drivers */
 #include "driverlib.h"
+#include "inc/hw_ipc.h"
 
 /* Libs */
 #include "clibs/serial.h"
+#include "plat_defs.h"
+
+/* Tasks */
+#include "tasks/blink.h"
 //#include "clibs/adc.h"
 //=============================================================================
 
@@ -39,12 +44,16 @@
 /*-------------------------------- Prototypes -------------------------------*/
 //=============================================================================
 static void ctlInitialize(void);
-static void ctlInitializeGPIOs(void);
 
-static uint32_t ctlCommandRelay1(serialDataExchange_t *data);
-static uint32_t ctlCommandRelay2(serialDataExchange_t *data);
-static uint32_t ctlCommandStartAcq(serialDataExchange_t *data);
-static uint32_t ctlCommandReadADCData(serialDataExchange_t *data);
+static uint32_t ctlCommandCPU1Blink(serialDataExchange_t *data);
+static uint32_t ctlCommandCPU2Blink(serialDataExchange_t *data);
+static uint32_t ctlCommandCPU2GPIO(serialDataExchange_t *data);
+
+static void ctlIPCCommand(uint32_t command, uint32_t data);
+//static uint32_t ctlCommandRelay1(serialDataExchange_t *data);
+//static uint32_t ctlCommandRelay2(serialDataExchange_t *data);
+//static uint32_t ctlCommandStartAcq(serialDataExchange_t *data);
+//static uint32_t ctlCommandReadADCData(serialDataExchange_t *data);
 //=============================================================================
 
 //=============================================================================
@@ -68,65 +77,96 @@ void ctl(UArg a0, UArg a1){
 //-----------------------------------------------------------------------------
 static void ctlInitialize(void){
 
-    ctlInitializeGPIOs();
-
-    adcInitialize();
-
     /* Register commands */
-    serialRegisterHandle(CTL_CMD_RELAY1, ctlCommandRelay1);
-    serialRegisterHandle(CTL_CMD_RELAY2, ctlCommandRelay2);
-    serialRegisterHandle(CTL_CMD_OPMODE_1, ctlCommandStartAcq);
-    serialRegisterHandle(CTL_CMD_GET_ADC_DATA, ctlCommandReadADCData);
+    serialRegisterHandle(PLAT_CMD_CPU1_BLINK, ctlCommandCPU1Blink);
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_BLINK, ctlCommandCPU2Blink);
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_GPIO, ctlCommandCPU2GPIO);
 }
 //-----------------------------------------------------------------------------
-static void ctlInitializeGPIOs(void){
+static uint32_t ctlCommandCPU1Blink(serialDataExchange_t *data){
 
-    /* Initialize GPIO and configure the GPIO pin as a push-pull output */
-    GPIO_setPadConfig(CTL_CONFIG_RELAY_1, GPIO_PIN_TYPE_STD);
-    GPIO_setDirectionMode(CTL_CONFIG_RELAY_1, GPIO_DIR_MODE_OUT);
+    uint32_t period;
 
-    GPIO_setPadConfig(CTL_CONFIG_RELAY_2, GPIO_PIN_TYPE_STD);
-    GPIO_setDirectionMode(CTL_CONFIG_RELAY_2, GPIO_DIR_MODE_OUT);
-}
-//-----------------------------------------------------------------------------
-static uint32_t ctlCommandRelay1(serialDataExchange_t *data){
+    period = *data->buffer++ << 8;
+    period = period | *data->buffer;
 
-    uint32_t val = 1;
-
-    if( *data->buffer == 0 ) val = 0;
-
-    GPIO_writePin(CTL_CONFIG_RELAY_1, val);
+    blinkPeriodUpdate(period);
 
     return 0;
 }
 //-----------------------------------------------------------------------------
-static uint32_t ctlCommandRelay2(serialDataExchange_t *data){
+static uint32_t ctlCommandCPU2Blink(serialDataExchange_t *data){
 
-    uint32_t val = 1;
+    uint32_t period;
 
-    if( *data->buffer == 0 ) val = 0;
+    period = *data->buffer++ << 8;
+    period = period | *data->buffer;
 
-    GPIO_writePin(CTL_CONFIG_RELAY_2, val);
-
-    return 0;
-}
-//-----------------------------------------------------------------------------
-static uint32_t ctlCommandStartAcq(serialDataExchange_t *data){
-
-    adcStartAcq();
+    ctlIPCCommand(PLAT_CMD_CPU2_BLINK, period);
 
     return 0;
 }
 //-----------------------------------------------------------------------------
-static uint32_t ctlCommandReadADCData(serialDataExchange_t *data){
+static uint32_t ctlCommandCPU2GPIO(serialDataExchange_t *data){
 
-    uint8_t *pADC;
+    uint32_t gpio;
+    uint32_t state;
+    uint32_t cmd;
 
-    pADC = adcGetBuffer();
-    data->buffer = pADC;
-    data->size = CTL_CONFIG_ADC_SAMPLES;
+    gpio = *data->buffer++;
+    state = *data->buffer;
+    cmd = gpio | (state << 16);
 
-    return 1;
+    ctlIPCCommand(PLAT_CMD_CPU2_GPIO, cmd);
+
+    return 0;
+}
+//-----------------------------------------------------------------------------
+//static uint32_t ctlCommandRelay1(serialDataExchange_t *data){
+//
+//    uint32_t val = 1;
+//
+//    if( *data->buffer == 0 ) val = 0;
+//
+//    GPIO_writePin(CTL_CONFIG_RELAY_1, val);
+//
+//    return 0;
+//}
+//-----------------------------------------------------------------------------
+//static uint32_t ctlCommandRelay2(serialDataExchange_t *data){
+//
+//    uint32_t val = 1;
+//
+//    if( *data->buffer == 0 ) val = 0;
+//
+//    GPIO_writePin(CTL_CONFIG_RELAY_2, val);
+//
+//    return 0;
+//}
+//-----------------------------------------------------------------------------
+//static uint32_t ctlCommandStartAcq(serialDataExchange_t *data){
+//
+//    adcStartAcq();
+//
+//    return 0;
+//}
+//-----------------------------------------------------------------------------
+//static uint32_t ctlCommandReadADCData(serialDataExchange_t *data){
+//
+//    uint8_t *pADC;
+//
+//    pADC = adcGetBuffer();
+//    data->buffer = pADC;
+//    data->size = CTL_CONFIG_ADC_SAMPLES;
+//
+//    return 1;
+//}
+//-----------------------------------------------------------------------------
+static void ctlIPCCommand(uint32_t command, uint32_t data){
+
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = command;
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CMD;
 }
 //-----------------------------------------------------------------------------
 //=============================================================================

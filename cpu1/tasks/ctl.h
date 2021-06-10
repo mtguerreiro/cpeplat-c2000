@@ -20,17 +20,7 @@
 //=============================================================================
 /*--------------------------------- Defines ---------------------------------*/
 //=============================================================================
-//#define CTL_CONFIG_RELAY_1      DEVICE_GPIO_PIN_LED2
-#define CTL_CONFIG_RELAY_1      8U
-#define CTL_CONFIG_RELAY_2      9U
 
-#define CTL_CMD_RELAY1          0x02
-#define CTL_CMD_RELAY2          0x03
-
-#define CTL_CMD_OPMODE_1        0x04
-#define CTL_CMD_GET_ADC_DATA    0x05
-
-#define CTL_CONFIG_ADC_SAMPLES  ADC_CONFIG_BUFFER_SIZE
 //=============================================================================
 
 //=============================================================================
