@@ -41,6 +41,9 @@ typedef struct{
 	uint8_t *buffer;
 	uint8_t *bufferSend;
 	uint32_t bufferSize;
+#if ( SERIAL_CONFIG_SUPPORT_16BIT_BUFFER == 1 )
+    uint8_t bufferMode;
+#endif
 
 	uint32_t id[SERIAL_CONFIG_IDS];
 	serialHandle_t handle[SERIAL_CONFIG_IDS];
@@ -51,6 +54,7 @@ typedef struct{
 	uint32_t n;
 	uint32_t currentID;
 	uint32_t dataSize;
+
 }serialControl_t;
 //---------------------------------------------------------------------------
 //===========================================================================
@@ -95,6 +99,7 @@ void serialInitialize(uint8_t *buffer, uint32_t size, serialHWRead_t hwRead, ser
 	serialControl.hwWrite = hwWrite;
 
 	serialControl.dataSize = 0;
+
 
 	/* Initial state */
 	serialControl.st = SERIAL_ST_START;
@@ -324,6 +329,9 @@ static void serialStateDataRcvd(void){
 		return;
 	}
 
+#if ( SERIAL_CONFIG_SUPPORT_16BIT_BUFFER == 1 )
+	serialControl.bufferMode = dataExchange.bufferMode;
+#endif
 	serialControl.dataSize = dataExchange.size;
 	serialControl.bufferSend = dataExchange.buffer;
 	serialControl.st = SERIAL_ST_SEND_START;
@@ -402,14 +410,44 @@ static void serialStateSendData(void){
 	uint32_t k;
 
 	/* Sends data from buffer */
-	k = 0;
-	p = serialControl.bufferSend;
-	while( k < serialControl.dataSize ){
-		ret = serialControl.hwWrite(p, SERIAL_CONFIG_TX_TO);
-		if( ret != 0 ) break;
-		p++;
-		k++;
+#if ( SERIAL_CONFIG_SUPPORT_16BIT_BUFFER == 1 )
+	if( serialControl.bufferMode == 0 ){
+	    k = 0;
+	    p = serialControl.bufferSend;
+	    while( k < serialControl.dataSize ){
+	        ret = serialControl.hwWrite(p, SERIAL_CONFIG_TX_TO);
+	        if( ret != 0 ) break;
+	        p++;
+	        k++;
+	    }
 	}
+	else{
+        k = 0;
+        p = serialControl.bufferSend;
+        uint8_t data;
+        while( k < serialControl.dataSize ){
+            data = *p & 0xFF;
+            ret = serialControl.hwWrite(&data, SERIAL_CONFIG_TX_TO);
+            if( ret != 0 ) break;
+            k++;
+
+            data = (*p >> 8) &0xFF;
+            ret = serialControl.hwWrite(&data, SERIAL_CONFIG_TX_TO);
+            if( ret != 0 ) break;
+            k++;
+            p++;
+        }
+	}
+#else
+    k = 0;
+    p = serialControl.bufferSend;
+    while( k < serialControl.dataSize ){
+        ret = serialControl.hwWrite(p, SERIAL_CONFIG_TX_TO);
+        if( ret != 0 ) break;
+        p++;
+        k++;
+    }
+#endif
 
 	if( k != serialControl.dataSize ){
 		serialControl.st = SERIAL_ST_START;

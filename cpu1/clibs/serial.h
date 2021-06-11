@@ -41,11 +41,32 @@
 //===========================================================================
 
 //===========================================================================
+/*-------------------------------- Defines --------------------------------*/
+//===========================================================================
+/* Error codes */
+#define SERIAL_ERR_INVALID_ID               -0x01
+#define SERIAL_ERR_EXCEEDED_MAX_ID          -0x02
+#define SERIAL_ERR_WRITE                    -0x03
+
+#define SERIAL_CONFIG_SUPPORT_16BIT_BUFFER  1
+
+#define SERIAL_CONFIG_IDS                   10
+#define SERIAL_CONFIG_RX_TO                 1000
+#define SERIAL_CONFIG_TX_TO                 1000
+
+#define SERIAL_CONFIG_START_BYTE            0x55
+#define SERIAL_CONFIG_STOP_BYTE             0x77
+//===========================================================================
+
+//===========================================================================
 /*------------------------------- Data types ------------------------------*/
 //===========================================================================
 typedef struct{
     uint32_t size;
     uint8_t *buffer;
+#if ( SERIAL_CONFIG_SUPPORT_16BIT_BUFFER == 1 )
+    uint8_t bufferMode;
+#endif
 }serialDataExchange_t;
 
 /*
@@ -74,23 +95,6 @@ typedef int32_t(*serialHWRead_t)(uint8_t *buffer, uint32_t to);
  * the peripheral.
  */
 typedef int32_t(*serialHWWrite_t)(uint8_t *buffer, uint32_t to);
-//===========================================================================
-
-//===========================================================================
-/*-------------------------------- Defines --------------------------------*/
-//===========================================================================
-/* Error codes */
-#define SERIAL_ERR_INVALID_ID			-0x01
-#define SERIAL_ERR_EXCEEDED_MAX_ID		-0x02
-#define SERIAL_ERR_WRITE				-0x03
-
-
-#define SERIAL_CONFIG_IDS				10
-#define SERIAL_CONFIG_RX_TO				1000
-#define SERIAL_CONFIG_TX_TO				1000
-
-#define SERIAL_CONFIG_START_BYTE		0x55
-#define SERIAL_CONFIG_STOP_BYTE			0x77
 //===========================================================================
 
 //===========================================================================

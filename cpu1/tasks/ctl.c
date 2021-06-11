@@ -49,6 +49,8 @@ static uint32_t ctlCommandCPU1Blink(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2Blink(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2GPIO(serialDataExchange_t *data);
 
+static uint32_t ctlCommandReadMem(serialDataExchange_t *data);
+
 static void ctlIPCCommand(uint32_t command, uint32_t data);
 //static uint32_t ctlCommandRelay1(serialDataExchange_t *data);
 //static uint32_t ctlCommandRelay2(serialDataExchange_t *data);
@@ -81,6 +83,7 @@ static void ctlInitialize(void){
     serialRegisterHandle(PLAT_CMD_CPU1_BLINK, ctlCommandCPU1Blink);
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_BLINK, ctlCommandCPU2Blink);
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_GPIO, ctlCommandCPU2GPIO);
+    serialRegisterHandle(PLAT_CMD_CPU1_READ_RAM, ctlCommandReadMem);
 }
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU1Blink(serialDataExchange_t *data){
@@ -122,45 +125,14 @@ static uint32_t ctlCommandCPU2GPIO(serialDataExchange_t *data){
     return 0;
 }
 //-----------------------------------------------------------------------------
-//static uint32_t ctlCommandRelay1(serialDataExchange_t *data){
-//
-//    uint32_t val = 1;
-//
-//    if( *data->buffer == 0 ) val = 0;
-//
-//    GPIO_writePin(CTL_CONFIG_RELAY_1, val);
-//
-//    return 0;
-//}
-//-----------------------------------------------------------------------------
-//static uint32_t ctlCommandRelay2(serialDataExchange_t *data){
-//
-//    uint32_t val = 1;
-//
-//    if( *data->buffer == 0 ) val = 0;
-//
-//    GPIO_writePin(CTL_CONFIG_RELAY_2, val);
-//
-//    return 0;
-//}
-//-----------------------------------------------------------------------------
-//static uint32_t ctlCommandStartAcq(serialDataExchange_t *data){
-//
-//    adcStartAcq();
-//
-//    return 0;
-//}
-//-----------------------------------------------------------------------------
-//static uint32_t ctlCommandReadADCData(serialDataExchange_t *data){
-//
-//    uint8_t *pADC;
-//
-//    pADC = adcGetBuffer();
-//    data->buffer = pADC;
-//    data->size = CTL_CONFIG_ADC_SAMPLES;
-//
-//    return 1;
-//}
+static uint32_t ctlCommandReadMem(serialDataExchange_t *data){
+
+    data->buffer = (uint8_t *)0x0001A000;
+    data->bufferMode = 1;
+    data->size = 100;
+
+    return 1;
+}
 //-----------------------------------------------------------------------------
 static void ctlIPCCommand(uint32_t command, uint32_t data){
 

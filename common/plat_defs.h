@@ -20,15 +20,9 @@ typedef enum{
     PLAT_CMD_CPU1_BLINK = 1,
     PLAT_CMD_CPU1_CPU2_BLINK,
     PLAT_CMD_CPU1_CPU2_GPIO,
+    PLAT_CMD_CPU1_READ_RAM,
     PLAT_CMD_CPU1_END
 }platCPU1CommandsEnum_t;
-
-///* CPU1 to CPU2 commands */
-//typedef enum{
-//    PLAT_CMD_C1C2_BLINK = 0,
-//    PLAT_CMD_C1C2_GPIO = 1,
-//    PLAT_CMD_C1C2_END
-//}platC1C2CommandsEnum_t;
 
 /* CPU2 commands */
 typedef enum{
@@ -39,16 +33,18 @@ typedef enum{
 
 
 /* GPIOs for CPU1 */
-#define PLAT_CPU1_LED           31U
+#define PLAT_CPU1_LED               31U
 
 /* GPIOs for CPU2 */
-#define PLAT_CPU2_LED           34U
-#define PLAT_CPU2_GPIO_0        8U
-#define PLAT_CPU2_GPIO_1        9U
+#define PLAT_CPU2_LED               34U
+#define PLAT_CPU2_GPIO_0            8U
+#define PLAT_CPU2_GPIO_1            9U
 
 /* IPC flag for commands */
-#define PLAT_IPC_FLAG_CMD       0U
-#define PLAT_IPC_FLAG_INIT      17U
+#define PLAT_IPC_FLAG_CMD           0U
+#define PLAT_IPC_FLAG_CPU2_INIT     17U
+#define PLAT_IPC_FLAG_MEM_OWN       18U
+
 //=============================================================================
 
 #endif /* PLAT_DEFS_H_ */
