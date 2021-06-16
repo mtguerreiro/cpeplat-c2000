@@ -14,7 +14,6 @@
 /*--------------------------------- Defines ---------------------------------*/
 //=============================================================================
 
-
 /* CPU1 commands */
 typedef enum{
     PLAT_CMD_CPU1_BLINK = 1,
@@ -31,7 +30,6 @@ typedef enum{
     PLAT_CMD_CPU2_END
 }platCPU2CommandsEnum_t;
 
-
 /* GPIOs for CPU1 */
 #define PLAT_CPU1_LED               31U
 
@@ -47,6 +45,8 @@ typedef enum{
 
 /* RAM section for CPU2->CPU1 data exchange */
 #define PLAT_CPU2_CPU1_RAM_SEC      (MEMCFG_SECT_GS14 | MEMCFG_SECT_GS15)
+#define PLAT_CPU2_CPU1_RAM_ADD      0x0001A000
+#define PLAT_CPU2_CPU1_RAM_SIZE     8192
 //=============================================================================
 
 #endif /* PLAT_DEFS_H_ */

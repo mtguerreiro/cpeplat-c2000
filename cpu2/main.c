@@ -5,6 +5,10 @@
  *      Author: mguerreiro
  */
 
+/*
+ * TODO: IPC0 flag is hard coded in CPU2. Change that.
+ */
+
 //=============================================================================
 /*-------------------------------- Includes ---------------------------------*/
 //=============================================================================
@@ -14,7 +18,6 @@
 #include "inc/hw_ipc.h"
 
 #include "plat_defs.h"
-//#include "plat_defs.h"
 //=============================================================================
 
 //===========================================================================
@@ -24,36 +27,37 @@
 typedef void (*mainCommandHandle)(uint32_t data);
 //---------------------------------------------------------------------------
 typedef struct{
-    uint32_t blink;
-    mainCommandHandle handle[PLAT_CMD_CPU2_END];
-}mainControl_t;
-//---------------------------------------------------------------------------
-typedef struct{
-    uint32_t *buffer;
+    uint32_t *p;
     uint32_t size;
     uint32_t space;
 }mainRAMControl_t;
+//---------------------------------------------------------------------------
+typedef struct{
+    uint32_t blink;
+    mainCommandHandle handle[PLAT_CMD_CPU2_END];
+    mainRAMControl_t ram;
+}mainControl_t;
 //---------------------------------------------------------------------------
 //===========================================================================
 
 //=============================================================================
 /*--------------------------------- Defines ---------------------------------*/
 //=============================================================================
-#define MAIN_CPU2_RAM_BUFFER_ADD        0x0001A000
-#define MAIN_CPU2_RAM_BUFFER_SIZE       8192
+
 //=============================================================================
 
 //=============================================================================
 /*--------------------------------- Globals ---------------------------------*/
 //=============================================================================
 mainControl_t mainControl = {.blink = 1000};
-mainRAMControl_t mainRAMControl;
 //=============================================================================
 
 //=============================================================================
 /*------------------------------- Prototypes --------------------------------*/
 //=============================================================================
 static void mainInitialize(void);
+
+static void mainInitializeIPC(void);
 
 static void mainInitializeRAM(void);
 
@@ -95,6 +99,18 @@ static void mainInitialize(void){
     /* Initializes handlers for CPU1 commands */
     mainCommandInitializeHandlers();
 
+    /* Sets IPC that is used for commands */
+    mainInitializeIPC();
+
+    /*
+     * Initializes the section of RAM that is used for CPU2->CPU1 data
+     * exchange.
+     */
+    mainInitializeRAM();
+}
+//-----------------------------------------------------------------------------
+static void mainInitializeIPC(void){
+
     /* Initialize PIE and clear PIE registers. Disables CPU interrupts */
     Interrupt_initModule();
 
@@ -114,7 +130,12 @@ static void mainInitialize(void){
 
     /* Signals CPU2 initialization to CPU1 */
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_INIT;
+}
+//-----------------------------------------------------------------------------
+static void mainInitializeRAM(void){
 
+    uint32_t k;
+    uint32_t *p;
 
     /* Wait until CPU01 gives us ownership of RAM sections GS14 and GS15 */
     while( !(HWREG(IPC_BASE + IPC_O_STS) & (1UL << PLAT_IPC_FLAG_MEM_OWN)) );
@@ -123,22 +144,15 @@ static void mainInitialize(void){
     HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_MEM_OWN;
     HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_MEM_OWN;
 
-    mainInitializeRAM();
-}
-//-----------------------------------------------------------------------------
-static void mainInitializeRAM(void){
+    /* Initializes the control structure and fills the memory */
+    mainControl.ram.p = (uint32_t *)PLAT_CPU2_CPU1_RAM_ADD;
+    mainControl.ram.size = PLAT_CPU2_CPU1_RAM_SIZE;
+    mainControl.ram.space = PLAT_CPU2_CPU1_RAM_SIZE;
 
-    uint32_t k;
-    uint32_t *p;
-
-    mainRAMControl.buffer = (uint32_t *)MAIN_CPU2_RAM_BUFFER_ADD;
-    mainRAMControl.size = MAIN_CPU2_RAM_BUFFER_SIZE;
-    mainRAMControl.space = MAIN_CPU2_RAM_BUFFER_SIZE;
-
-    k = MAIN_CPU2_RAM_BUFFER_SIZE;
-    p = (uint32_t *)MAIN_CPU2_RAM_BUFFER_ADD;
+    k = PLAT_CPU2_CPU1_RAM_SIZE;
+    p = (uint32_t *)PLAT_CPU2_CPU1_RAM_ADD;
     while(k--){
-        *p++ = 0x12345678;
+        *p++ = 0xAA995500;
     }
 }
 //-----------------------------------------------------------------------------
