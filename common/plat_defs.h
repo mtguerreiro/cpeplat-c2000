@@ -45,6 +45,8 @@ typedef enum{
 #define PLAT_IPC_FLAG_CPU2_INIT     17U
 #define PLAT_IPC_FLAG_MEM_OWN       18U
 
+/* RAM section for CPU2->CPU1 data exchange */
+#define PLAT_CPU2_CPU1_RAM_SEC      (MEMCFG_SECT_GS14 | MEMCFG_SECT_GS15)
 //=============================================================================
 
 #endif /* PLAT_DEFS_H_ */
