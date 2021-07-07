@@ -23,6 +23,26 @@
 
 /* Libs */
 #include "plat_defs.h"
+
+
+//#include "F28x_Project.h"
+//#include "F2837xD_Headers_nonBIOS_cpu1.cmd"
+
+#include "F2837xD_GlobalVariableDefs.c"
+
+//#include "F2837xD_Headers_nonBIOS_cpu1.cmd"
+//#include "F2837xD_Gpio.c"
+//#include "F2837xD_SysCtrl.c"
+
+#include "F2837xD_sysctrl.h"
+#include "F2837xD_gpio.h"
+#include "F2837xD_epwm.h"
+
+
+
+
+//#define SCICCRA (volatile Uint16 *) 0x7050
+
 //=============================================================================
 
 //=============================================================================
@@ -119,12 +139,49 @@ static void mainInitializeCPU2GPIO(void){
     GPIO_setPadConfig(PLAT_CPU2_GPIO_1, GPIO_PIN_TYPE_STD);
     GPIO_setDirectionMode(PLAT_CPU2_GPIO_1, GPIO_DIR_MODE_OUT);
     GPIO_setMasterCore(PLAT_CPU2_GPIO_1, GPIO_CORE_CPU2);
+
+    //
+    // Transfer ownership of EPWM4 and ADCA, ADCB, ADCC to CPU02
+    //
+        EALLOW;
+        DevCfgRegs.CPUSEL0.bit.EPWM4 = 1;
+        DevCfgRegs.CPUSEL11.bit.ADC_A = 1;
+        DevCfgRegs.CPUSEL11.bit.ADC_B = 1;
+        DevCfgRegs.CPUSEL11.bit.ADC_C = 1;
+        EDIS;
+
+    //
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeCPU2PWM(void){
 
-    /* PWM initialization code here */
+    /* PWM4 initialization code here */
+    EALLOW;
 
+        //
+        // Disable internal pull-up for the selected output pins
+        //   for reduced power consumption
+        // Pull-ups can be enabled or disabled by the user.
+        // This will enable the pullups for the specified pins.
+        // Comment out other unwanted lines.
+        //
+        GpioCtrlRegs.GPAPUD.bit.GPIO6 = 1;    // Disable pull-up on GPIO6 (EPWM4A)
+        GpioCtrlRegs.GPAPUD.bit.GPIO7 = 1;    // Disable pull-up on GPIO7 (EPWM4B)
+        // GpioCtrlRegs.GPEPUD.bit.GPIO151 = 1;    // Disable pull-up on GPIO151 (EPWM4A)
+        // GpioCtrlRegs.GPEPUD.bit.GPIO152 = 1;    // Disable pull-up on GPIO152 (EPWM4B)
+
+         //
+         // Configure EPWM-4 pins using GPIO regs
+         // This specifies which of the possible GPIO pins will be EPWM4 functional
+         // pins.
+         // Comment out other unwanted lines.
+         //
+        GpioCtrlRegs.GPAMUX1.bit.GPIO6 = 1;   // Configure GPIO6 as EPWM4A
+        GpioCtrlRegs.GPAMUX1.bit.GPIO7 = 1;   // Configure GPIO7 as EPWM4B
+        // GpioCtrlRegs.GPEMUX2.bit.GPIO151 = 1;   // Configure GPIO151 as EPWM4A
+        // GpioCtrlRegs.GPEMUX2.bit.GPIO152 = 1;   // Configure GPIO152 as EPWM4B
+
+        EDIS;
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeCPU2ADC(void){
