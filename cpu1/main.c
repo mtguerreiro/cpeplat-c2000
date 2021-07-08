@@ -25,23 +25,17 @@
 #include "plat_defs.h"
 
 
-//#include "F28x_Project.h"
-//#include "F2837xD_Headers_nonBIOS_cpu1.cmd"
 
-#include "F2837xD_GlobalVariableDefs.c"
-
-//#include "F2837xD_Headers_nonBIOS_cpu1.cmd"
-//#include "F2837xD_Gpio.c"
-//#include "F2837xD_SysCtrl.c"
-
-#include "F2837xD_sysctrl.h"
-#include "F2837xD_gpio.h"
-#include "F2837xD_epwm.h"
+#include "F2837xD_GlobalVariableDefs.c"         //adjust linker File  according to "F2837xD_Headers_nonBIOS_cpu1.cmd"
 
 
 
 
-//#define SCICCRA (volatile Uint16 *) 0x7050
+//#include "F2837xD_sysctrl.h"                  already included in "F2837xD_GlobalVariableDefs.c"
+//#include "F2837xD_gpio.h"                     already included in "F2837xD_GlobalVariableDefs.c"
+//#include "F2837xD_epwm.h"                     already included in "F2837xD_GlobalVariableDefs.c"
+
+
 
 //=============================================================================
 
@@ -144,6 +138,7 @@ static void mainInitializeCPU2GPIO(void){
     // Transfer ownership of EPWM4 and ADCA, ADCB, ADCC to CPU02
     //
         EALLOW;
+        DevCfgRegs.CPUSEL0.bit.EPWM2 = 1;
         DevCfgRegs.CPUSEL0.bit.EPWM4 = 1;
         DevCfgRegs.CPUSEL11.bit.ADC_A = 1;
         DevCfgRegs.CPUSEL11.bit.ADC_B = 1;
