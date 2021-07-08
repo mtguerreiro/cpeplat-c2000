@@ -132,18 +132,25 @@ static void mainInitialize(void){
      */
     Device_init();
 
-// Initialize System Control
-EALLOW;
-ClkCfgRegs.PERCLKDIVSEL.bit.EPWMCLKDIV = 1;
-EDIS;
-
-
     /* Initializes handlers for CPU1 commands */
     mainCommandInitializeHandlers();
 
     /* Sets IPC that is used for commands */
     mainInitializeIPC();
 
+    /* Waits until CPU1 has initialized */
+    while( !(HWREG(IPC_BASE + IPC_O_STS) & (1UL << PLAT_IPC_FLAG_CPU1_INIT)) );
+
+    /* Acks the IPC flag */
+    HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU1_INIT;
+    HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU1_INIT;
+
+    /* Now we initialize the peripherals owned by CPU2 */
+
+    // Initialize System Control
+    EALLOW;
+    ClkCfgRegs.PERCLKDIVSEL.bit.EPWMCLKDIV = 1;
+    EDIS;
 
     mainADCEPWM();
 
@@ -152,6 +159,9 @@ EDIS;
      * exchange.
      */
     mainInitializeRAM();
+
+    /* Signals CPU1 that we have initialized CPU2 */
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_INIT;
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeIPC(void){
@@ -172,17 +182,6 @@ static void mainInitializeIPC(void){
     /* Sets up IPC interrupt */
     Interrupt_register(INT_IPC_0, mainIPC0ISR);
     Interrupt_enable(INT_IPC_0);
-
-// Map ISR functions
-EALLOW;
-PieVectTable.ADCA1_INT = &adca1_isr;            // Function for ADCA interrupt 1
-PieVectTable.ADCA_EVT_INT = &adca_ppb_isr;
-PieVectTable.ADCB_EVT_INT = &adca_ppb_isr;
-EDIS;
-
-
-    /* Signals CPU2 initialization to CPU1 */
-    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_INIT;
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeRAM(void){
@@ -190,12 +189,12 @@ static void mainInitializeRAM(void){
     uint32_t k;
     uint32_t *p;
 
-    /* Wait until CPU01 gives us ownership of RAM sections GS14 and GS15 */
-    while( !(HWREG(IPC_BASE + IPC_O_STS) & (1UL << PLAT_IPC_FLAG_MEM_OWN)) );
-
-    /* Acks the IPC flag */
-    HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_MEM_OWN;
-    HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_MEM_OWN;
+//    /* Wait until CPU01 gives us ownership of RAM sections GS14 and GS15 */
+//    while( !(HWREG(IPC_BASE + IPC_O_STS) & (1UL << PLAT_IPC_FLAG_MEM_OWN)) );
+//
+//    /* Acks the IPC flag */
+//    HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_MEM_OWN;
+//    HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_MEM_OWN;
 
     /* Initializes the control structure and fills the memory */
     mainControl.ram.p = (uint32_t *)PLAT_CPU2_CPU1_RAM_ADD;
@@ -238,7 +237,7 @@ void mainADCEPWM(void){
 
      // Setup the ADC for ePWM triggered conversions on channel 0
      SetupADCEpwm();
-
+//
      // Configure ADC post-processing limits
      // SOC will generate an interrupt if conversion is above limits
      ConfigurePPB1Limits();
@@ -246,6 +245,13 @@ void mainADCEPWM(void){
      // Initialize ePWM modules
      InitEPwm2();
      InitEPwm4();
+
+     // Map ISR functions
+     EALLOW;
+     PieVectTable.ADCA1_INT = &adca1_isr;            // Function for ADCA interrupt 1
+     PieVectTable.ADCA_EVT_INT = &adca_ppb_isr;
+     PieVectTable.ADCB_EVT_INT = &adca_ppb_isr;
+     EDIS;
 
      // Initialize results buffers
      for(resultsIndex = 0; resultsIndex < RESULTS_BUFFER_SIZE; resultsIndex++)
@@ -260,24 +266,27 @@ void mainADCEPWM(void){
      }
      resultsIndex = 0;
 
-     // Enable global interrupts and higher priority real-time debug events
-     IER |= M_INT1;          // Enable group 1 interrupts
-     IER |= M_INT10;         //Enable group 10 interrupts
-     EINT;                   // Enable Global interrupt INTM
-     ERTM;                   // Enable Global realtime interrupt DBGM
-
-     // Enable PIE interrupt
-     PieCtrlRegs.PIEIER1.bit.INTx1 = 1;
-     PieCtrlRegs.PIEIER10.bit.INTx1 = 1;
-     PieCtrlRegs.PIEIER10.bit.INTx5 = 1;
+//     // Enable global interrupts and higher priority real-time debug events
+//     IER |= M_INT1;          // Enable group 1 interrupts
+//     IER |= M_INT10;         //Enable group 10 interrupts
+//     EINT;                   // Enable Global interrupt INTM
+//     ERTM;                   // Enable Global realtime interrupt DBGM
+//
+//     // Enable PIE interrupt
+//     PieCtrlRegs.PIEIER1.bit.INTx1 = 1;
+//     PieCtrlRegs.PIEIER10.bit.INTx1 = 1;
+//     PieCtrlRegs.PIEIER10.bit.INTx5 = 1;
 
      // Sync ePWM
      EALLOW;
      CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 1;
+     EDIS;
 
      // Start ePWM
+     EALLOW;
      EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
      EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
+     EDIS;
 
 }
 //=============================================================================
@@ -327,6 +336,7 @@ void ConfigureADC(void)
     AdccRegs.ADCCTL2.bit.SIGNALMODE = 0;        // Single-ended channel conversions (12-bit mode only)
     AdccRegs.ADCCTL1.bit.INTPULSEPOS = 1;       // Set pulse positions to late
     AdccRegs.ADCCTL1.bit.ADCPWDNZ = 1;          // Power up the ADC
+
     EDIS;
 
     DEVICE_DELAY_US(1000);                             // Delay for 1ms to allow ADC time to power up
@@ -337,6 +347,7 @@ void SetupADCEpwm(void)
 {
     // Select the channels to convert and end of conversion flag
     EALLOW;
+
     //ADC-A
     AdcaRegs.ADCSOC0CTL.bit.CHSEL = 1;          // SOC0 will convert pin A1
     AdcaRegs.ADCSOC0CTL.bit.ACQPS = 14;         // Sample window is 100 SYSCLK cycles  //i think 15 SYSCLK -> 75ns
@@ -378,6 +389,8 @@ void SetupADCEpwm(void)
     AdccRegs.ADCSOC0CTL.bit.CHSEL = 4;          // SOC0 will convert pin C4
     AdccRegs.ADCSOC0CTL.bit.ACQPS = 14;         // Sample window is 100 SYSCLK cycles
     AdccRegs.ADCSOC0CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
+
+
     EDIS;
 }
 
@@ -458,38 +471,42 @@ void InitEPwm2(void)
 void InitEPwm4(void)
 {
    // Setup TBCLK
-   EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Count up
-   EPwm4Regs.TBPRD = PWM_PERIOD;
-   EPwm4Regs.TBCTL.bit.PHSEN = 0;               // disable phase loading
-   EPwm4Regs.TBPHS.bit.TBPHS = 0x0000;          // Phase
-   EPwm4Regs.TBCTR = 0x0000;                    // Clear counter
-   EPwm4Regs.TBCTL.bit.HSPCLKDIV = 0;           // Clock ratio to SYSCLKOUT
-   EPwm4Regs.TBCTL.bit.CLKDIV = 0;
-   EPwm4Regs.TBCTL.bit.SYNCOSEL = 1;
+    EALLOW;
 
-   // Setup shadow register load on ZERO
-   EPwm4Regs.CMPCTL.bit.SHDWAMODE = 0;
-   EPwm4Regs.CMPCTL.bit.SHDWBMODE = 0;
-   EPwm4Regs.CMPCTL.bit.LOADAMODE = 0;
-   EPwm4Regs.CMPCTL.bit.LOADBMODE = 0;
+    EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Count up
+    EPwm4Regs.TBPRD = PWM_PERIOD;
+    EPwm4Regs.TBCTL.bit.PHSEN = 0;               // disable phase loading
+    EPwm4Regs.TBPHS.bit.TBPHS = 0x0000;          // Phase
+    EPwm4Regs.TBCTR = 0x0000;                    // Clear counter
+    EPwm4Regs.TBCTL.bit.HSPCLKDIV = 0;           // Clock ratio to SYSCLKOUT
+    EPwm4Regs.TBCTL.bit.CLKDIV = 0;
+    EPwm4Regs.TBCTL.bit.SYNCOSEL = 1;
 
-   // Set Compare values
-   EPwm4Regs.CMPA.bit.CMPA = dutyCycle_count;        // Set compare A value
+    // Setup shadow register load on ZERO
+    EPwm4Regs.CMPCTL.bit.SHDWAMODE = 0;
+    EPwm4Regs.CMPCTL.bit.SHDWBMODE = 0;
+    EPwm4Regs.CMPCTL.bit.LOADAMODE = 0;
+    EPwm4Regs.CMPCTL.bit.LOADBMODE = 0;
 
-   // Set actions - Active Low
-   EPwm4Regs.AQCTLA.bit.ZRO = 2;                // Clear PWM4A on Zero
-   EPwm4Regs.AQCTLA.bit.CAU = 1;                // Set PWM4A on event A, up count
+    // Set Compare values
+    EPwm4Regs.CMPA.bit.CMPA = dutyCycle_count;        // Set compare A value
 
-   EPwm4Regs.AQCTLB.bit.ZRO = 1;                // Set PWM4A on Zero
-   EPwm4Regs.AQCTLB.bit.CAU = 2;                // Clear PWM4A on event A, up count
+    // Set actions - Active Low
+    EPwm4Regs.AQCTLA.bit.ZRO = 2;                // Clear PWM4A on Zero
+    EPwm4Regs.AQCTLA.bit.CAU = 1;                // Set PWM4A on event A, up count
+
+    EPwm4Regs.AQCTLB.bit.ZRO = 1;                // Set PWM4A on Zero
+    EPwm4Regs.AQCTLB.bit.CAU = 2;                // Clear PWM4A on event A, up count
 
 
-   // Active Low complementary PWMs - setup the deadband - spruhm8i - page 1994
-   EPwm4Regs.DBCTL.bit.OUT_MODE = 3;
-   EPwm4Regs.DBCTL.bit.POLSEL = 1;
-   EPwm4Regs.DBCTL.bit.IN_MODE = 0;
-   EPwm4Regs.DBRED.bit.DBRED = 50;
-   EPwm4Regs.DBFED.bit.DBFED = 50;
+    // Active Low complementary PWMs - setup the deadband - spruhm8i - page 1994
+    EPwm4Regs.DBCTL.bit.OUT_MODE = 3;
+    EPwm4Regs.DBCTL.bit.POLSEL = 1;
+    EPwm4Regs.DBCTL.bit.IN_MODE = 0;
+    EPwm4Regs.DBRED.bit.DBRED = 50;
+    EPwm4Regs.DBFED.bit.DBFED = 50;
+
+    EDIS;
 
 }
 
@@ -556,7 +573,7 @@ interrupt void adca_ppb_isr(void)
         //
         //voltage exceeded high limit
         //
-        asm("   ESTOP0");
+        //asm("   ESTOP0");
 
         //
         //clear the trip flag and continue
@@ -570,7 +587,7 @@ interrupt void adca_ppb_isr(void)
             //
             //voltage exceeded high limit
             //
-            asm("   ESTOP0");
+            //asm("   ESTOP0");
 
             //
             //clear the trip flag and continue
@@ -587,7 +604,7 @@ interrupt void adca_ppb_isr(void)
             //
             //voltage exceeded high limit
             //
-            asm("   ESTOP0");
+            //asm("   ESTOP0");
 
             //
             //clear the trip flag and continue

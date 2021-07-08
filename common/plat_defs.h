@@ -40,6 +40,7 @@ typedef enum{
 
 /* IPC flag for commands */
 #define PLAT_IPC_FLAG_CMD           0U
+#define PLAT_IPC_FLAG_CPU1_INIT     16U
 #define PLAT_IPC_FLAG_CPU2_INIT     17U
 #define PLAT_IPC_FLAG_MEM_OWN       18U
 

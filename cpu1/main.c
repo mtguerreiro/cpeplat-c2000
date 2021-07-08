@@ -110,7 +110,13 @@ static void mainInitializeCPU2(void){
     mainInitializeCPU2ADC();
     mainInitializeCPU2Memory();
 
-    /* Wait until CPU2 is ready */
+    /*
+     * Signals to CPU2 that CPU1 initialized already (all required peripheral
+     * ownerships were given).
+     */
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU1_INIT;
+
+    /* Now, wait until CPU2 is ready */
     while( !(HWREG(IPC_BASE + IPC_O_STS) & (1UL << PLAT_IPC_FLAG_CPU2_INIT)) );
 
     /* Acks the IPC flag */
@@ -133,65 +139,59 @@ static void mainInitializeCPU2GPIO(void){
     GPIO_setPadConfig(PLAT_CPU2_GPIO_1, GPIO_PIN_TYPE_STD);
     GPIO_setDirectionMode(PLAT_CPU2_GPIO_1, GPIO_DIR_MODE_OUT);
     GPIO_setMasterCore(PLAT_CPU2_GPIO_1, GPIO_CORE_CPU2);
-
-    //
-    // Transfer ownership of EPWM4 and ADCA, ADCB, ADCC to CPU02
-    //
-        EALLOW;
-        DevCfgRegs.CPUSEL0.bit.EPWM2 = 1;
-        DevCfgRegs.CPUSEL0.bit.EPWM4 = 1;
-        DevCfgRegs.CPUSEL11.bit.ADC_A = 1;
-        DevCfgRegs.CPUSEL11.bit.ADC_B = 1;
-        DevCfgRegs.CPUSEL11.bit.ADC_C = 1;
-        EDIS;
-
-    //
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeCPU2PWM(void){
 
-    /* PWM4 initialization code here */
+    /* Transfer ownerships of EPWM2 and EPWM4 to CPU2 */
+
     EALLOW;
 
-        //
-        // Disable internal pull-up for the selected output pins
-        //   for reduced power consumption
-        // Pull-ups can be enabled or disabled by the user.
-        // This will enable the pullups for the specified pins.
-        // Comment out other unwanted lines.
-        //
-        GpioCtrlRegs.GPAPUD.bit.GPIO6 = 1;    // Disable pull-up on GPIO6 (EPWM4A)
-        GpioCtrlRegs.GPAPUD.bit.GPIO7 = 1;    // Disable pull-up on GPIO7 (EPWM4B)
-        // GpioCtrlRegs.GPEPUD.bit.GPIO151 = 1;    // Disable pull-up on GPIO151 (EPWM4A)
-        // GpioCtrlRegs.GPEPUD.bit.GPIO152 = 1;    // Disable pull-up on GPIO152 (EPWM4B)
+    DevCfgRegs.CPUSEL0.bit.EPWM2 = 1;
+    DevCfgRegs.CPUSEL0.bit.EPWM4 = 1;
 
-         //
-         // Configure EPWM-4 pins using GPIO regs
-         // This specifies which of the possible GPIO pins will be EPWM4 functional
-         // pins.
-         // Comment out other unwanted lines.
-         //
-        GpioCtrlRegs.GPAMUX1.bit.GPIO6 = 1;   // Configure GPIO6 as EPWM4A
-        GpioCtrlRegs.GPAMUX1.bit.GPIO7 = 1;   // Configure GPIO7 as EPWM4B
-        // GpioCtrlRegs.GPEMUX2.bit.GPIO151 = 1;   // Configure GPIO151 as EPWM4A
-        // GpioCtrlRegs.GPEMUX2.bit.GPIO152 = 1;   // Configure GPIO152 as EPWM4B
+    //
+    // Disable internal pull-up for the selected output pins
+    //   for reduced power consumption
+    // Pull-ups can be enabled or disabled by the user.
+    // This will enable the pullups for the specified pins.
+    // Comment out other unwanted lines.
+    //
+    GpioCtrlRegs.GPAPUD.bit.GPIO6 = 1;    // Disable pull-up on GPIO6 (EPWM4A)
+    GpioCtrlRegs.GPAPUD.bit.GPIO7 = 1;    // Disable pull-up on GPIO7 (EPWM4B)
+    // GpioCtrlRegs.GPEPUD.bit.GPIO151 = 1;    // Disable pull-up on GPIO151 (EPWM4A)
+    // GpioCtrlRegs.GPEPUD.bit.GPIO152 = 1;    // Disable pull-up on GPIO152 (EPWM4B)
 
-        EDIS;
+     //
+     // Configure EPWM-4 pins using GPIO regs
+     // This specifies which of the possible GPIO pins will be EPWM4 functional
+     // pins.
+     // Comment out other unwanted lines.
+     //
+    GpioCtrlRegs.GPAMUX1.bit.GPIO6 = 1;   // Configure GPIO6 as EPWM4A
+    GpioCtrlRegs.GPAMUX1.bit.GPIO7 = 1;   // Configure GPIO7 as EPWM4B
+    // GpioCtrlRegs.GPEMUX2.bit.GPIO151 = 1;   // Configure GPIO151 as EPWM4A
+    // GpioCtrlRegs.GPEMUX2.bit.GPIO152 = 1;   // Configure GPIO152 as EPWM4B
+
+    EDIS;
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeCPU2ADC(void){
 
-    /* ADC initialization code here */
+    /* Transfers ownership of ADC to CPU2 */
+    EALLOW;
 
+    DevCfgRegs.CPUSEL11.bit.ADC_A = 1;
+    DevCfgRegs.CPUSEL11.bit.ADC_B = 1;
+    DevCfgRegs.CPUSEL11.bit.ADC_C = 1;
+
+    EDIS;
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeCPU2Memory(void){
 
     /* Gives ownership of RAM sections GS14 and GS15 to CPU2 */
     MemCfg_setGSRAMMasterSel(PLAT_CPU2_CPU1_RAM_SEC, MEMCFG_GSRAMMASTER_CPU2);
-
-    /* Signals given ownership of RAM section GS14 and GS15 to CPU 2 */
-    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_MEM_OWN;
 }
 //-----------------------------------------------------------------------------
 //=============================================================================
