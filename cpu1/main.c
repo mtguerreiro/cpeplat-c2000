@@ -2,7 +2,7 @@
  * main.c
  *
  *  Created on: 01.12.2020
- *      Author: mguerreiro
+ *      Author: LRS
  */
 
 //=============================================================================
@@ -27,16 +27,6 @@
 
 
 #include "F2837xD_GlobalVariableDefs.c"         //adjust linker File  according to "F2837xD_Headers_nonBIOS_cpu1.cmd"
-
-
-
-
-//#include "F2837xD_sysctrl.h"                  already included in "F2837xD_GlobalVariableDefs.c"
-//#include "F2837xD_gpio.h"                     already included in "F2837xD_GlobalVariableDefs.c"
-//#include "F2837xD_epwm.h"                     already included in "F2837xD_GlobalVariableDefs.c"
-
-
-
 //=============================================================================
 
 //=============================================================================
@@ -102,7 +92,7 @@ static void mainInitialize(void){
 static void mainInitializeCPU2(void){
 
     /* Tells CPU2 to boot from flash */
-    Device_bootCPU2(C1C2_BROM_BOOTMODE_BOOT_FROM_FLASH);
+    //Device_bootCPU2(C1C2_BROM_BOOTMODE_BOOT_FROM_FLASH);
 
     /* CPU2's peripherals initialization */
     mainInitializeCPU2GPIO();
@@ -144,7 +134,6 @@ static void mainInitializeCPU2GPIO(void){
 static void mainInitializeCPU2PWM(void){
 
     /* Transfer ownerships of EPWM2 and EPWM4 to CPU2 */
-
     EALLOW;
 
     DevCfgRegs.CPUSEL0.bit.EPWM2 = 1;
