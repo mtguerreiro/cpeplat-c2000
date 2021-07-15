@@ -45,7 +45,7 @@ typedef struct{
 //=============================================================================
 /*--------------------------------- Defines ---------------------------------*/
 //=============================================================================
-#define PWM_PERIOD  0x03E7          // PWM1 frequency 999 counts = 200kHz
+#define PWM_PERIOD  (0x03E7>>1)          // PWM1 frequency 999 counts = 200kHz
 #define PWM_CMPR25  PWM_PERIOD>>2   // PWM1 initial duty cycle = 25%
 #define SWITCHINGFREQUENCY 200000
 #define DUTYCYCLE 0.25

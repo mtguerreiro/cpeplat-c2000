@@ -39,9 +39,9 @@
 
 /* CPU1 commands */
 typedef struct{
-    uint16_t adcA1[100];
-    uint16_t adcB4[100];
-    uint16_t adcA5[100];
+    uint16_t adcA1[3000];
+    uint16_t adcB4[3000];
+    uint16_t adcA5[3000];
     uint16_t i;
 }ctlADCBuffer_t;
 
@@ -63,6 +63,8 @@ static uint32_t ctlCommandCPU2Blink(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2GPIO(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2PWMEnable(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2PWMDisable(serialDataExchange_t *data);
+static uint32_t ctlCommandCPU1ReadADCA1(serialDataExchange_t *data);
+static uint32_t ctlCommandCPU1ReadADCA5(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU1ReadADCB4(serialDataExchange_t *data);
 
 static uint32_t ctlCommandReadMem(serialDataExchange_t *data);
@@ -99,15 +101,18 @@ static void ctlInitialize(void){
 
     /* Register commands */
     serialRegisterHandle(PLAT_CMD_CPU1_BLINK, ctlCommandCPU1Blink);
+
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_BLINK, ctlCommandCPU2Blink);
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_GPIO, ctlCommandCPU2GPIO);
+
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_PWM_ENABLE, ctlCommandCPU2PWMEnable);
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_PWM_DISABLE, ctlCommandCPU2PWMDisable);
+
+    serialRegisterHandle(PLAT_CMD_CPU1_ADC_A1_READ, ctlCommandCPU1ReadADCA1);
+    serialRegisterHandle(PLAT_CMD_CPU1_ADC_A5_READ, ctlCommandCPU1ReadADCA5);
     serialRegisterHandle(PLAT_CMD_CPU1_ADC_B4_READ, ctlCommandCPU1ReadADCB4);
 
     serialRegisterHandle(PLAT_CMD_CPU1_READ_RAM, ctlCommandReadMem);
-
-
 
     /*
      * Enable ADC ISR. We don't want this interrupt to go through the
@@ -174,11 +179,29 @@ static uint32_t ctlCommandCPU2PWMDisable(serialDataExchange_t *data){
     return 0;
 }
 //-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU1ReadADCA1(serialDataExchange_t *data){
+
+    data->bufferMode = 1;
+    data->buffer = (uint8_t *)ctlADCBuffer.adcA1;
+    data->size = 6000;
+
+    return 1;
+}
+//-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU1ReadADCA5(serialDataExchange_t *data){
+
+    data->bufferMode = 1;
+    data->buffer = (uint8_t *)ctlADCBuffer.adcA5;
+    data->size = 6000;
+
+    return 1;
+}
+//-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU1ReadADCB4(serialDataExchange_t *data){
 
     data->bufferMode = 1;
     data->buffer = (uint8_t *)ctlADCBuffer.adcB4;
-    data->size = 100;
+    data->size = 6000;
 
     return 1;
 }
@@ -187,7 +210,7 @@ static uint32_t ctlCommandReadMem(serialDataExchange_t *data){
 
     data->buffer = (uint8_t *)0x0001A000;
     data->bufferMode = 1;
-    data->size = 100;
+    data->size = 1000;
 
     return 1;
 }
@@ -211,10 +234,10 @@ static __interrupt void ctlADCISR(void){
     ADC_clearInterruptStatus(ADCA_BASE, ADC_INT_NUMBER1);
     Interrupt_clearACKGroup(INTERRUPT_ACK_GROUP1);
 
-    if( ctlADCBuffer.i < 100 ){
-        ctlADCBuffer.adcA1[ctlADCBuffer.i] = ADC_readResult(ADCA_BASE, (ADC_SOCNumber)0);
-        ctlADCBuffer.adcA5[ctlADCBuffer.i] = ADC_readResult(ADCA_BASE, (ADC_SOCNumber)2);
-        ctlADCBuffer.adcB4[ctlADCBuffer.i] = ADC_readResult(ADCB_BASE, (ADC_SOCNumber)0);
+    if( ctlADCBuffer.i < 3000 ){
+        ctlADCBuffer.adcA1[ctlADCBuffer.i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)0);
+        ctlADCBuffer.adcA5[ctlADCBuffer.i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)2);
+        ctlADCBuffer.adcB4[ctlADCBuffer.i] = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0);
         ctlADCBuffer.i++;
     }
 }
