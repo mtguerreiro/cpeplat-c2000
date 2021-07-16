@@ -21,10 +21,8 @@ typedef enum{
     PLAT_CMD_CPU1_CPU2_GPIO,
     PLAT_CMD_CPU1_CPU2_PWM_ENABLE,
     PLAT_CMD_CPU1_CPU2_PWM_DISABLE,
-    PLAT_CMD_CPU1_ADC_A1_READ,
-    PLAT_CMD_CPU1_ADC_A5_READ,
-    PLAT_CMD_CPU1_ADC_B4_READ,
-    PLAT_CMD_CPU1_READ_RAM,
+    PLAT_CMD_CPU1_ADC_BUFFER_SET,
+    PLAT_CMD_CPU1_ADC_BUFFER_READ,
     PLAT_CMD_CPU1_END
 }platCPU1CommandsEnum_t;
 
@@ -55,6 +53,12 @@ typedef enum{
 #define PLAT_CPU2_CPU1_RAM_SEC      (MEMCFG_SECT_GS14 | MEMCFG_SECT_GS15)
 #define PLAT_CPU2_CPU1_RAM_ADD      0x0001A000
 #define PLAT_CPU2_CPU1_RAM_SIZE     8192
+
+/* RAM section for ADC data (saved by CPU1) */
+#define PLAT_CPU1_ADC_RAM_SEC       (MEMCFG_SECT_GS0 | MEMCFG_SECT_GS1 | MEMCFG_SECT_GS2 | MEMCFG_SECT_GS3)
+#define PLAT_CPU1_ADC_RAM_ADD       0x0000C000
+#define PLAT_CPU1_ADC_RAM_SIZE      (0x001000 * 4)
+
 //=============================================================================
 
 #endif /* PLAT_DEFS_H_ */
