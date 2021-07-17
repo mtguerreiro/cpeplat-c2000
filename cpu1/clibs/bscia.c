@@ -92,8 +92,8 @@ int32_t bsciaWrite(uint8_t *buffer, uint32_t nbytes, uint32_t to){
         status = SCI_getInterruptStatus(SCIA_BASE);
 
         if( status & SCI_INT_TXRDY ){
-            SCI_enableInterrupt(SCIA_BASE, SCI_INT_TXRDY);
             SCI_writeCharNonBlocking(SCIA_BASE, *p);
+            SCI_enableInterrupt(SCIA_BASE, SCI_INT_TXRDY);
         }
         else{
             if( Mailbox_post(bsciaTXMailBox, p, to) != TRUE ) break;

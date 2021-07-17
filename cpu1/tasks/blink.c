@@ -32,7 +32,6 @@ uint32_t blinkPeriod;
 /*-------------------------------- Prototypes -------------------------------*/
 //=============================================================================
 static void blinkInitialize(void);
-//static uint32_t blinkPeriodUpdate(serialDataExchange_t *data);
 //=============================================================================
 
 //=============================================================================
@@ -44,7 +43,6 @@ void blink(UArg a0, UArg a1){
     blinkInitialize();
     blinkPeriod = 1000;
 
-    GPIO_writePin(40, 0);
     while(1){
         GPIO_togglePin(BLINK_CONFIG_LED);
         Task_sleep(blinkPeriod);
@@ -60,29 +58,13 @@ void blink(UArg a0, UArg a1){
 static void blinkInitialize(void){
 
     /* Initialize GPIO and configure the GPIO pin as a push-pull output */
-//    Device_initGPIO();
     GPIO_setPadConfig(BLINK_CONFIG_LED, GPIO_PIN_TYPE_STD);
     GPIO_setDirectionMode(BLINK_CONFIG_LED, GPIO_DIR_MODE_OUT);
-
-    GPIO_setPadConfig(40, GPIO_PIN_TYPE_STD);
-    GPIO_setDirectionMode(40, GPIO_DIR_MODE_OUT);
 }
 //-----------------------------------------------------------------------------
 void blinkPeriodUpdate(uint32_t period){
 
     blinkPeriod = period;
 }
-//-----------------------------------------------------------------------------
-//static uint32_t blinkPeriodUpdate(serialDataExchange_t *data){
-//
-//    blinkPeriod = *data->buffer++ << 8;
-//    blinkPeriod = blinkPeriod | *data->buffer;
-//
-//    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
-//    HWREG(IPC_BASE + IPC_O_SENDDATA) = blinkPeriod;
-//    HWREG(IPC_BASE + IPC_O_SET) = 1UL << 0;
-//
-//    return 0;
-//}
 //-----------------------------------------------------------------------------
 //=============================================================================
