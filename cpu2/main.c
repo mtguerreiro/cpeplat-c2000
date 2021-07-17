@@ -405,14 +405,15 @@ static void mainInitializeEPWM4(void){
      EPwm4Regs.CMPCTL.bit.LOADBMODE = 0;
 
      // Set Compare values
-     EPwm4Regs.CMPA.bit.CMPA = dutyCycle_count;        // Set compare A value
+     //EPwm4Regs.CMPA.bit.CMPA = dutyCycle_count;        // Set compare A value
+     EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
 
      // Set actions - Active Low
      EPwm4Regs.AQCTLA.bit.ZRO = 2;                // Clear PWM4A on Zero
      EPwm4Regs.AQCTLA.bit.CAU = 1;                // Set PWM4A on event A, up count
 
-     EPwm4Regs.AQCTLB.bit.ZRO = 1;                // Set PWM4A on Zero
-     EPwm4Regs.AQCTLB.bit.CAU = 2;                // Clear PWM4A on event A, up count
+     EPwm4Regs.AQCTLB.bit.ZRO = 1;                // Set PWM4B on Zero
+     EPwm4Regs.AQCTLB.bit.CAU = 2;                // Clear PWM4B on event A, up count
 
 
      // Active Low complementary PWMs - setup the deadband - spruhm8i - page 1994
@@ -421,6 +422,9 @@ static void mainInitializeEPWM4(void){
      EPwm4Regs.DBCTL.bit.IN_MODE = 0;
      EPwm4Regs.DBRED.bit.DBRED = 50;
      EPwm4Regs.DBFED.bit.DBFED = 50;
+
+     /* Enables counter */
+     EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Freeze counter
 
      EDIS;
 }
@@ -474,12 +478,17 @@ static void mainCommandGPIO(uint32_t data){
 //-----------------------------------------------------------------------------
 static void mainCommandPWMEnable(uint32_t data){
 
+    uint16_t dc;
+
+    if( data > PWM_PERIOD ) data = 0;
+
     // Start ePWM
     EALLOW;
     EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
     EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
 
-    EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Count up
+    EPwm4Regs.CMPA.bit.CMPA = data;        // Set compare A value
+    //EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Count up
     EDIS;
 
 }
@@ -491,7 +500,8 @@ static void mainCommandPWMDisable(uint32_t data){
     EPwm2Regs.ETSEL.bit.SOCAEN = 0;             // Disable SOCA
     EPwm2Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
 
-    EPwm4Regs.TBCTL.bit.CTRMODE = 3;             // Count up
+    EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
+    //EPwm4Regs.TBCTL.bit.CTRMODE = 3;             //
     EDIS;
 
 }

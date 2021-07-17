@@ -199,9 +199,14 @@ static uint32_t ctlCommandCPU2GPIO(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2PWMEnable(serialDataExchange_t *data){
 
+    uint16_t dc;
+
     ctlADCBufferUpdate();
 
-    ctlIPCCommand(PLAT_CMD_CPU2_PWM_ENABLE, 0);
+    dc = data->buffer[0] << 8;
+    dc = dc | data->buffer[1];
+
+    ctlIPCCommand(PLAT_CMD_CPU2_PWM_ENABLE, dc);
 
     return 0;
 }
