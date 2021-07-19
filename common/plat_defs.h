@@ -17,6 +17,8 @@
 /* CPU1 commands */
 typedef enum{
     PLAT_CMD_CPU1_BLINK = 1,
+    PLAT_CMD_CPU1_CPU2_STATUS,
+    PLAT_CMD_CPU1_CPU2_STATUS_CLEAR,
     PLAT_CMD_CPU1_CPU2_BLINK,
     PLAT_CMD_CPU1_CPU2_GPIO,
     PLAT_CMD_CPU1_CPU2_PWM_ENABLE,
@@ -28,7 +30,9 @@ typedef enum{
 
 /* CPU2 commands */
 typedef enum{
-    PLAT_CMD_CPU2_BLINK = 0,
+    PLAT_CMD_CPU2_STATUS = 0,
+    PLAT_CMD_CPU2_STATUS_CLEAR,
+    PLAT_CMD_CPU2_BLINK,
     PLAT_CMD_CPU2_GPIO,
     PLAT_CMD_CPU2_PWM_ENABLE,
     PLAT_CMD_CPU2_PWM_DISABLE,
@@ -36,29 +40,40 @@ typedef enum{
 }platCPU2CommandsEnum_t;
 
 /* GPIOs for CPU1 */
-#define PLAT_CPU1_LED               31U
+#define PLAT_CPU1_LED                   31U
 
 /* GPIOs for CPU2 */
-#define PLAT_CPU2_LED               34U
-#define PLAT_CPU2_GPIO_0            8U
-#define PLAT_CPU2_GPIO_1            9U
+#define PLAT_CPU2_LED                   34U
+#define PLAT_CPU2_GPIO_0                8U
+#define PLAT_CPU2_GPIO_1                9U
 
 /* IPC flag for commands */
-#define PLAT_IPC_FLAG_CMD           0U
-#define PLAT_IPC_FLAG_CPU1_INIT     16U
-#define PLAT_IPC_FLAG_CPU2_INIT     17U
-#define PLAT_IPC_FLAG_MEM_OWN       18U
+#define PLAT_IPC_FLAG_CMD               0U
+#define PLAT_IPC_FLAG_CPU2_CPU1_DATA    15U
+#define PLAT_IPC_FLAG_CPU1_INIT         16U
+#define PLAT_IPC_FLAG_CPU2_INIT         17U
+#define PLAT_IPC_FLAG_MEM_OWN           18U
 
 /* RAM section for CPU2->CPU1 data exchange */
-#define PLAT_CPU2_CPU1_RAM_SEC      (MEMCFG_SECT_GS14 | MEMCFG_SECT_GS15)
-#define PLAT_CPU2_CPU1_RAM_ADD      0x0001A000
-#define PLAT_CPU2_CPU1_RAM_SIZE     8192
+#define PLAT_CPU2_CPU1_RAM_SEC          (MEMCFG_SECT_GS14 | MEMCFG_SECT_GS15)
+#define PLAT_CPU2_CPU1_RAM_ADD          0x0001A000
+#define PLAT_CPU2_CPU1_RAM_SIZE         8192
 
 /* RAM section for ADC data (saved by CPU1) */
-#define PLAT_CPU1_ADC_RAM_SEC       (MEMCFG_SECT_GS0 | MEMCFG_SECT_GS1 | MEMCFG_SECT_GS2 | MEMCFG_SECT_GS3)
-#define PLAT_CPU1_ADC_RAM_ADD       0x0000C000
-#define PLAT_CPU1_ADC_RAM_SIZE      (0x001000 * 4)
+#define PLAT_CPU1_ADC_RAM_SEC           (MEMCFG_SECT_GS0 | MEMCFG_SECT_GS1 | MEMCFG_SECT_GS2 | MEMCFG_SECT_GS3)
+#define PLAT_CPU1_ADC_RAM_ADD           0x0000C000
+#define PLAT_CPU1_ADC_RAM_SIZE          (0x001000 * 4)
 
+
+/* ADCs */
+/*
+ * ADCA - SOC0: ADCIN_A1 (Vin)
+ * ADCA - SOC1: ADCIN_A4 (Vin_buck)
+ * ADCA - SOC2: ADCIN_A5 (IL)
+ * ADCB - SOC0: ADCIN_B4 (Vout)
+ * ADCB - SOC1: ADCIN_B5 (IL_avg)
+ * ADCC - SOC0: ADCIN_C4 (Vout_buck)
+ */
 //=============================================================================
 
 #endif /* PLAT_DEFS_H_ */

@@ -62,6 +62,9 @@ static uint32_t ctlADCBufferUpdate(void);
 static void ctlIPCCommand(uint32_t command, uint32_t data);
 
 static uint32_t ctlCommandCPU1Blink(serialDataExchange_t *data);
+
+static uint32_t ctlCommandCPU2Status(serialDataExchange_t *data);
+static uint32_t ctlCommandCPU2StatusClear(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2Blink(serialDataExchange_t *data);
 
 static uint32_t ctlCommandCPU2GPIO(serialDataExchange_t *data);
@@ -101,6 +104,8 @@ static void ctlInitialize(void){
     /* Register commands */
     serialRegisterHandle(PLAT_CMD_CPU1_BLINK, ctlCommandCPU1Blink);
 
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_STATUS, ctlCommandCPU2Status);
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_STATUS_CLEAR, ctlCommandCPU2StatusClear);
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_BLINK, ctlCommandCPU2Blink);
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_GPIO, ctlCommandCPU2GPIO);
 
@@ -166,6 +171,31 @@ static uint32_t ctlCommandCPU1Blink(serialDataExchange_t *data){
     period = period | *data->buffer;
 
     blinkPeriodUpdate(period);
+
+    return 0;
+}
+//-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2Status(serialDataExchange_t *data){
+
+    ctlIPCCommand(PLAT_CMD_CPU2_STATUS, 0);
+
+    /* Now, wait until CPU2 responds */
+    while( !(HWREG(IPC_BASE + IPC_O_STS) & (1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA)) );
+
+    /* Acks the IPC flag */
+    HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+    HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+
+    data->buffer = (uint8_t *)(IPC_BASE + IPC_O_RECVDATA);
+    data->size = 2;
+    data->bufferMode = 1;
+
+    return 1;
+}
+//-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2StatusClear(serialDataExchange_t *data){
+
+    ctlIPCCommand(PLAT_CMD_CPU2_STATUS_CLEAR, 0);
 
     return 0;
 }
@@ -245,7 +275,7 @@ static uint32_t ctlCommandCPU1ADCBufferRead(serialDataExchange_t *data){
 
     data->bufferMode = 1;
     data->buffer = (uint8_t *)ctlADCBuffer[adc].buffer;
-    data->size = ctlADCBuffer[adc].size << 1;
+    data->size = ctlADCBuffer[adc].i << 1;
 
     return 1;
 }
@@ -268,13 +298,28 @@ static __interrupt void ctlADCISR(void){
     }
 
     if( ctlADCBuffer[1].i < ctlADCBuffer[1].size ){
-        ctlADCBuffer[1].buffer[ctlADCBuffer[1].i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)2);
+        ctlADCBuffer[1].buffer[ctlADCBuffer[1].i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)1);
         ctlADCBuffer[1].i++;
     }
 
     if( ctlADCBuffer[2].i < ctlADCBuffer[2].size ){
         ctlADCBuffer[2].buffer[ctlADCBuffer[2].i] = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0);
         ctlADCBuffer[2].i++;
+    }
+
+    if( ctlADCBuffer[3].i < ctlADCBuffer[3].size ){
+        ctlADCBuffer[3].buffer[ctlADCBuffer[3].i] = ADC_readResult(ADCCRESULT_BASE, (ADC_SOCNumber)0);
+        ctlADCBuffer[3].i++;
+    }
+
+    if( ctlADCBuffer[4].i < ctlADCBuffer[4].size ){
+        ctlADCBuffer[4].buffer[ctlADCBuffer[4].i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)2);
+        ctlADCBuffer[4].i++;
+    }
+
+    if( ctlADCBuffer[5].i < ctlADCBuffer[5].size ){
+        ctlADCBuffer[5].buffer[ctlADCBuffer[5].i] = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)1);
+        ctlADCBuffer[5].i++;
     }
 }
 //-----------------------------------------------------------------------------

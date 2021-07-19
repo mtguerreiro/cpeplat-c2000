@@ -37,6 +37,7 @@ typedef struct{
 }mainRAMControl_t;
 //---------------------------------------------------------------------------
 typedef struct{
+    uint32_t status;
     uint32_t blink;
     mainCommandHandle handle[PLAT_CMD_CPU2_END];
     mainRAMControl_t ram;
@@ -47,35 +48,26 @@ typedef struct{
 //=============================================================================
 /*--------------------------------- Defines ---------------------------------*/
 //=============================================================================
-#define PWM_PERIOD  (0x03E7>>1)          // PWM1 frequency 999 counts = 200kHz
-#define PWM_CMPR25  PWM_PERIOD>>2   // PWM1 initial duty cycle = 25%
-#define SWITCHINGFREQUENCY 200000
-#define DUTYCYCLE 0.25
+#define MAIN_CONFIG_EPWM2_PERIOD        (0x03E7>>1)
+#define MAIN_CONFIG_EPWM4_PERIOD        (0x03E7>>1)
+
+
+#define MAIN_STATUS_ADCA_PPB1_TRIP      (1 << 0)
+#define MAIN_STATUS_ADCA_PPB2_TRIP      (1 << 1)
+#define MAIN_STATUS_ADCB_PPB1_TRIP      (1 << 2)
+
+
+//#define PWM_PERIOD  (0x03E7>>1)          // PWM1 frequency 999 counts = 200kHz
+//#define PWM_CMPR25  PWM_PERIOD>>2   // PWM1 initial duty cycle = 25%
+//#define SWITCHINGFREQUENCY 200000
+//#define DUTYCYCLE 0.25
 //=============================================================================
 //=============================================================================
 
 //=============================================================================
 /*--------------------------------- Globals ---------------------------------*/
 //=============================================================================
-mainControl_t mainControl = {.blink = 1000};
-
-Uint32 switching_frequency = SWITCHINGFREQUENCY;            // PWM1 frequency 200kHz
-Uint16 switching_period_count = PWM_PERIOD;                 // PWM1 count 999
-Uint16 dutyCycle_count = PWM_CMPR25;                        // PWM1 duty cycle = 25%
-float dutyCycle = DUTYCYCLE;                                // PWM1 duty cycle = 25%
-
-#define RESULTS_BUFFER_SIZE 256
-Uint16 AdcVin[RESULTS_BUFFER_SIZE];
-Uint16 AdcVin_buck[RESULTS_BUFFER_SIZE];
-Uint16 AdcVout[RESULTS_BUFFER_SIZE];
-Uint16 AdcVout_buck[RESULTS_BUFFER_SIZE];
-Uint16 AdcIL[RESULTS_BUFFER_SIZE];
-Uint16 AdcIL_avg[RESULTS_BUFFER_SIZE];
-Uint16 resultsIndex;
-Uint16 pretrig = 0;
-Uint16 trigger = 0;
-
-
+mainControl_t mainControl;
 //=============================================================================
 /*------------------------------- Prototypes --------------------------------*/
 //=============================================================================
@@ -94,14 +86,17 @@ static void mainInitializeEPWM2(void);
 static void mainInitializeEPWM4(void);
 
 static void mainCommandInitializeHandlers(void);
+static void mainCommandStatus(uint32_t data);
+static void mainCommandStatusClear(uint32_t data);
 static void mainCommandBlink(uint32_t data);
 static void mainCommandGPIO(uint32_t data);
 static void mainCommandPWMEnable(uint32_t data);
 static void mainCommandPWMDisable(uint32_t data);
 
-static void mainADCAISR(void);
-static void mainADCCompISR(void);
-static void mainIPC0ISR(void);
+static __interrupt void mainIPC0ISR(void);
+
+static __interrupt void mainADCAISR(void);
+static __interrupt void mainADCPPBISR(void);
 //=============================================================================
 
 //=============================================================================
@@ -141,6 +136,10 @@ static void mainInitialize(void){
      * Service Routines (ISR).
      */
     Interrupt_initVectorTable();
+
+    /* Initializes control structure */
+    mainControl.blink = 1000;
+    mainControl.status = 0;
 
     /* Initializes handlers for CPU1 commands */
     mainCommandInitializeHandlers();
@@ -284,8 +283,8 @@ static void mainInitializeADCLimits(void){
     //
     //set high and low limits
     //
-    AdcaRegs.ADCPPB1TRIPHI.bit.LIMITHI = 3000;
-    AdcaRegs.ADCPPB1TRIPLO.bit.LIMITLO = 1000;
+    AdcaRegs.ADCPPB1TRIPHI.bit.LIMITHI = 4000;
+    AdcaRegs.ADCPPB1TRIPLO.bit.LIMITLO = 0;
 
     //
     //enable high events to generate interrupt
@@ -301,8 +300,8 @@ static void mainInitializeADCLimits(void){
     //
     //set high and low limits
     //
-    AdcaRegs.ADCPPB2TRIPHI.bit.LIMITHI = 3000;
-    AdcaRegs.ADCPPB2TRIPLO.bit.LIMITLO = 1000;
+    AdcaRegs.ADCPPB2TRIPHI.bit.LIMITHI = 3150;
+    AdcaRegs.ADCPPB2TRIPLO.bit.LIMITLO = 0;
 
     //
     //enable high events to generate interrupt
@@ -318,8 +317,8 @@ static void mainInitializeADCLimits(void){
     //
     //set high and low limits
     //
-    AdcbRegs.ADCPPB1TRIPHI.bit.LIMITHI = 3000;
-    AdcbRegs.ADCPPB1TRIPLO.bit.LIMITLO = 1000;
+    AdcbRegs.ADCPPB1TRIPHI.bit.LIMITHI = 4000;
+    AdcbRegs.ADCPPB1TRIPLO.bit.LIMITLO = 0;
     //
     //enable high events to generate interrupt
     //
@@ -336,10 +335,13 @@ static void mainInitializeADCISR(void){
     Interrupt_enable(INT_ADCA1);
 
     /* Sets up ADC compare interrupt */
-    Interrupt_register(INT_ADCA_EVT, mainADCCompISR);
+    Interrupt_register(INT_ADCA_EVT, mainADCPPBISR);
     Interrupt_enable(INT_ADCA_EVT);
 
-//    // Map ISR functions
+    Interrupt_register(INT_ADCB_EVT, mainADCPPBISR);
+    Interrupt_enable(INT_ADCB_EVT);
+
+    //    // Map ISR functions
 //    EALLOW;
 //    PieVectTable.ADCA1_INT = &adca1_isr;            // Function for ADCA interrupt 1
 //    PieVectTable.ADCA_EVT_INT = &adca_ppb_isr;
@@ -376,7 +378,7 @@ static void mainInitializeEPWM2(void){
     // Assumes ePWM clock is already enabled
     EPwm2Regs.TBCTL.bit.CTRMODE = 3;            // Freeze counter
     EPwm2Regs.TBCTL.bit.HSPCLKDIV = 0;          // TBCLK pre-scaler = /1
-    EPwm2Regs.TBPRD = 99;                       // Set period to 500 counts (200kHz) PWM1_PERIOD
+    EPwm2Regs.TBPRD = MAIN_CONFIG_EPWM2_PERIOD; // Set period to 500 counts (200kHz) PWM1_PERIOD
     EPwm2Regs.ETSEL.bit.SOCAEN  = 0;            // Disable SOC on A group
     EPwm2Regs.ETSEL.bit.SOCASEL = 2;            // Select SOCA on period match
     EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
@@ -390,7 +392,7 @@ static void mainInitializeEPWM4(void){
      EALLOW;
 
      EPwm4Regs.TBCTL.bit.CTRMODE = 3;             // Freeze counter
-     EPwm4Regs.TBPRD = PWM_PERIOD;
+     EPwm4Regs.TBPRD = MAIN_CONFIG_EPWM4_PERIOD;
      EPwm4Regs.TBCTL.bit.PHSEN = 0;               // disable phase loading
      EPwm4Regs.TBPHS.bit.TBPHS = 0x0000;          // Phase
      EPwm4Regs.TBCTR = 0x0000;                    // Clear counter
@@ -420,8 +422,8 @@ static void mainInitializeEPWM4(void){
      EPwm4Regs.DBCTL.bit.OUT_MODE = 3;
      EPwm4Regs.DBCTL.bit.POLSEL = 1;
      EPwm4Regs.DBCTL.bit.IN_MODE = 0;
-     EPwm4Regs.DBRED.bit.DBRED = 50;
-     EPwm4Regs.DBFED.bit.DBFED = 50;
+     EPwm4Regs.DBRED.bit.DBRED = 5;
+     EPwm4Regs.DBFED.bit.DBFED = 5;
 
      /* Enables counter */
      EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Freeze counter
@@ -455,10 +457,23 @@ static void mainInitializeRAM(void){
 //-----------------------------------------------------------------------------
 static void mainCommandInitializeHandlers(void){
 
+    mainControl.handle[PLAT_CMD_CPU2_STATUS] = mainCommandStatus;
+    mainControl.handle[PLAT_CMD_CPU2_STATUS_CLEAR] = mainCommandStatusClear;
     mainControl.handle[PLAT_CMD_CPU2_BLINK] = mainCommandBlink;
     mainControl.handle[PLAT_CMD_CPU2_GPIO] = mainCommandGPIO;
     mainControl.handle[PLAT_CMD_CPU2_PWM_ENABLE] = mainCommandPWMEnable;
     mainControl.handle[PLAT_CMD_CPU2_PWM_DISABLE] = mainCommandPWMDisable;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandStatus(uint32_t data){
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.status;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandStatusClear(uint32_t data){
+
+    mainControl.status = 0;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandBlink(uint32_t data){
@@ -478,9 +493,11 @@ static void mainCommandGPIO(uint32_t data){
 //-----------------------------------------------------------------------------
 static void mainCommandPWMEnable(uint32_t data){
 
-    uint16_t dc;
+    /* Doesn't enable PWM if any status flag is set */
+    if( mainControl.status != 0 ) return;
 
-    if( data > PWM_PERIOD ) data = 0;
+    /* Disables PWM if wrong receives wrong duty cycle */
+    if( data > MAIN_CONFIG_EPWM4_PERIOD ) data = 0;
 
     // Start ePWM
     EALLOW;
@@ -512,7 +529,7 @@ static void mainCommandPWMDisable(uint32_t data){
 /*---------------------------------- IRQs -----------------------------------*/
 //=============================================================================
 //-----------------------------------------------------------------------------
-__interrupt void mainIPC0ISR(void){
+static __interrupt void  mainIPC0ISR(void){
 
     uint32_t cmd, data;
 
@@ -529,13 +546,31 @@ __interrupt void mainIPC0ISR(void){
     Interrupt_clearACKGroup(INTERRUPT_ACK_GROUP1);
 }
 //-----------------------------------------------------------------------------
-__interrupt void mainADCAISR(void){
+static __interrupt void mainADCAISR(void){
 
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Clear ADC INT1 flag
     PieCtrlRegs.PIEACK.all = 0x0001;     // Acknowledge PIE group 1 to enable further interrupts
 }
 //-----------------------------------------------------------------------------
-__interrupt void mainADCCompISR(void){
+static __interrupt void mainADCPPBISR(void){
+
+    if( AdcaRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
+        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
+        mainControl.status |= MAIN_STATUS_ADCA_PPB1_TRIP;
+        AdcaRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
+    }
+
+    if( AdcaRegs.ADCEVTSTAT.bit.PPB2TRIPHI ){
+        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
+        mainControl.status |= MAIN_STATUS_ADCA_PPB2_TRIP;
+        AdcaRegs.ADCEVTCLR.bit.PPB2TRIPHI = 1;
+    }
+
+    if( AdcbRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
+        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
+        mainControl.status |= MAIN_STATUS_ADCB_PPB1_TRIP;
+        AdcbRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
+    }
 
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCA INT2 flag
     AdcbRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCB INT2 flag
