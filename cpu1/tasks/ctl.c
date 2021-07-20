@@ -335,7 +335,7 @@ static uint32_t ctlCommandCPU2PWMDisable(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU1ADCBufferSet(serialDataExchange_t *data){
 
-    uint32_t adc, size;
+    uint32_t adc, size, sizeOriginal;
 
     adc = data->buffer[0];
 
@@ -349,9 +349,12 @@ static uint32_t ctlCommandCPU1ADCBufferSet(serialDataExchange_t *data){
     size = data->buffer[1] << 8;
     size = size | data->buffer[2];
 
+    sizeOriginal = ctlADCBuffer[adc].size;
     ctlADCBuffer[adc].size = size;
 
     if( ctlADCBufferUpdate() != 0 ){
+        ctlADCBuffer[adc].size = sizeOriginal;
+        ctlADCBufferUpdate();
         data->buffer[0] = PLAT_CMD_CPU1_ADC_BUFFER_SET_ERR_SIZE;
     }
     else{
