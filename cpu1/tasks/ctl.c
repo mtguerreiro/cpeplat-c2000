@@ -76,6 +76,8 @@ static uint32_t ctlCommandCPU2PWMDisable(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU1ADCBufferSet(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU1ADCBufferRead(serialDataExchange_t *data);
 
+static uint32_t ctlCommandCPU2BufferRead(serialDataExchange_t *data);
+
 static __interrupt void ctlADCISR(void);
 //=============================================================================
 
@@ -115,6 +117,8 @@ static void ctlInitialize(void){
 
     serialRegisterHandle(PLAT_CMD_CPU1_ADC_BUFFER_SET, ctlCommandCPU1ADCBufferSet);
     serialRegisterHandle(PLAT_CMD_CPU1_ADC_BUFFER_READ, ctlCommandCPU1ADCBufferRead);
+
+    serialRegisterHandle(PLAT_CMD_CPU2_BUFFER_READ, ctlCommandCPU2BufferRead);
 
     /*
      * Enable ADC ISR. We don't want this interrupt to go through the
@@ -383,6 +387,15 @@ static uint32_t ctlCommandCPU1ADCBufferRead(serialDataExchange_t *data){
     data->bufferMode = 1;
     data->buffer = (uint8_t *)ctlADCBuffer[adc].buffer;
     data->size = ctlADCBuffer[adc].i << 1;
+
+    return 1;
+}
+//-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2BufferRead(serialDataExchange_t *data){
+
+    data->bufferMode = 1;
+    data->buffer = (uint8_t *)PLAT_CPU2_CPU1_RAM_ADD;
+    data->size = PLAT_CPU2_CPU1_RAM_SIZE << 1;
 
     return 1;
 }

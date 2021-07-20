@@ -31,16 +31,17 @@
 typedef void (*mainCommandHandle)(uint32_t data);
 //---------------------------------------------------------------------------
 typedef struct{
-    uint32_t *p;
-    uint32_t size;
-    uint32_t space;
-}mainRAMControl_t;
+    uint16_t *buffer;
+    uint16_t i;
+    uint16_t size;
+}mainBufferControl_t;
 //---------------------------------------------------------------------------
 typedef struct{
     uint32_t status;
     uint32_t blink;
     mainCommandHandle handle[PLAT_CMD_CPU2_END];
-    mainRAMControl_t ram;
+    mainBufferControl_t buffer;
+    uint16_t u;
 }mainControl_t;
 //---------------------------------------------------------------------------
 //===========================================================================
@@ -75,7 +76,7 @@ static void mainInitialize(void);
 
 static void mainInitializeIPC(void);
 
-static void mainInitializeRAM(void);
+static void mainInitializeBuffer(void);
 
 static void mainInitializeADC(void);
 static void mainInitializeADCLimits(void);
@@ -161,11 +162,8 @@ static void mainInitialize(void){
 
     mainInitializeEPWM();
 
-    /*
-     * Initializes the section of RAM that is used for CPU2->CPU1 data
-     * exchange.
-     */
-    mainInitializeRAM();
+    /* Initializes CPU2 buffer */
+    mainInitializeBuffer();
 
     /* Enable Global Interrupt (INTM) and realtime interrupt (DBGM) */
     EINT;
@@ -431,28 +429,12 @@ static void mainInitializeEPWM4(void){
      EDIS;
 }
 //-----------------------------------------------------------------------------
-static void mainInitializeRAM(void){
+static void mainInitializeBuffer(void){
 
-    uint32_t k;
-    uint32_t *p;
-
-//    /* Wait until CPU01 gives us ownership of RAM sections GS14 and GS15 */
-//    while( !(HWREG(IPC_BASE + IPC_O_STS) & (1UL << PLAT_IPC_FLAG_MEM_OWN)) );
-//
-//    /* Acks the IPC flag */
-//    HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_MEM_OWN;
-//    HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_MEM_OWN;
-
-    /* Initializes the control structure and fills the memory */
-    mainControl.ram.p = (uint32_t *)PLAT_CPU2_CPU1_RAM_ADD;
-    mainControl.ram.size = PLAT_CPU2_CPU1_RAM_SIZE;
-    mainControl.ram.space = PLAT_CPU2_CPU1_RAM_SIZE;
-
-    k = PLAT_CPU2_CPU1_RAM_SIZE;
-    p = (uint32_t *)PLAT_CPU2_CPU1_RAM_ADD;
-    while(k--){
-        *p++ = 0xAA995500;
-    }
+    /* Initializes the buffer control structure */
+    mainControl.buffer.buffer = (uint16_t *)PLAT_CPU2_CPU1_RAM_ADD;
+    mainControl.buffer.i = 0;
+    mainControl.buffer.size = PLAT_CPU2_CPU1_RAM_SIZE;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandInitializeHandlers(void){
@@ -516,12 +498,15 @@ static void mainCommandPWMEnable(uint32_t data){
     HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
+    mainControl.buffer.i = 0;
+
     // Start ePWM
     EALLOW;
     EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
     EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
 
     EPwm4Regs.CMPA.bit.CMPA = data;        // Set compare A value
+    mainControl.u = data;
     //EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Count up
     EDIS;
 
@@ -538,6 +523,7 @@ static void mainCommandPWMDisable(uint32_t data){
     EPwm2Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
 
     EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
+    mainControl.u = 0;
     //EPwm4Regs.TBCTL.bit.CTRMODE = 3;             //
     EDIS;
 
@@ -567,6 +553,13 @@ static __interrupt void  mainIPC0ISR(void){
 }
 //-----------------------------------------------------------------------------
 static __interrupt void mainADCAISR(void){
+
+    EPwm4Regs.CMPA.bit.CMPA = mainControl.u;
+
+    if( mainControl.buffer.i < mainControl.buffer.size ){
+        mainControl.buffer.buffer[mainControl.buffer.i] = mainControl.u;
+        mainControl.buffer.i++;
+    }
 
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Clear ADC INT1 flag
     PieCtrlRegs.PIEACK.all = 0x0001;     // Acknowledge PIE group 1 to enable further interrupts
