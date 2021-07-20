@@ -42,6 +42,7 @@ typedef struct{
     mainCommandHandle handle[PLAT_CMD_CPU2_END];
     mainBufferControl_t buffer;
     uint16_t u;
+    uint32_t controlActive;
 }mainControl_t;
 //---------------------------------------------------------------------------
 //===========================================================================
@@ -69,6 +70,17 @@ typedef struct{
 /*--------------------------------- Globals ---------------------------------*/
 //=============================================================================
 mainControl_t mainControl;
+
+float u = 0, u_1 = 0, u_2 = 0, e = 0, e_1 = 0, e_2 = 0;
+
+float a1 = -1.7777777777777777;
+float a2 = 0.7777777777777777;
+
+float b0 = 5.756944444444445;
+float b1 = -11.19999938888889;
+float b2 = 5.445833333333333;
+
+float r = 3.5;
 //=============================================================================
 /*------------------------------- Prototypes --------------------------------*/
 //=============================================================================
@@ -499,6 +511,12 @@ static void mainCommandPWMEnable(uint32_t data){
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
     mainControl.buffer.i = 0;
+    if( data == 0 ){
+        mainControl.controlActive = 1;
+    }
+    else{
+        mainControl.controlActive = 0;
+    }
 
     // Start ePWM
     EALLOW;
@@ -554,15 +572,42 @@ static __interrupt void  mainIPC0ISR(void){
 //-----------------------------------------------------------------------------
 static __interrupt void mainADCAISR(void){
 
-    EPwm4Regs.CMPA.bit.CMPA = mainControl.u;
+    float vc;
+    float y;
+
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Clear ADC INT1 flag
+    PieCtrlRegs.PIEACK.all = 0x0001;     // Acknowledge PIE group 1 to enable further interrupts
+
+    if( mainControl.controlActive == 1 ){
+        vc = (float)(ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0));
+
+        y = vc * ((float)0.007326007326007326);
+
+        e = r - y;
+
+        u = -a1 * u_1 - a2 * u_2 + b0 * e + b1 * e_1 + b2 * e_2;
+
+        if( u > 1 ) u = 1;
+        else if ( u < 0 ) u = 0;
+
+        mainControl.u = (uint16_t)(u * MAIN_CONFIG_EPWM4_PERIOD);
+        EPwm4Regs.CMPA.bit.CMPA = mainControl.u;
+
+        e_2 = e_1;
+        e_1 = e;
+
+        u_2 = u_1;
+        u_1 = u;
+    }
+    else{
+        EPwm4Regs.CMPA.bit.CMPA = mainControl.u;
+    }
+
 
     if( mainControl.buffer.i < mainControl.buffer.size ){
         mainControl.buffer.buffer[mainControl.buffer.i] = mainControl.u;
         mainControl.buffer.i++;
     }
-
-    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Clear ADC INT1 flag
-    PieCtrlRegs.PIEACK.all = 0x0001;     // Acknowledge PIE group 1 to enable further interrupts
 }
 //-----------------------------------------------------------------------------
 static __interrupt void mainADCPPBISR(void){
