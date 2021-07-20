@@ -575,19 +575,31 @@ static __interrupt void mainADCAISR(void){
 static __interrupt void mainADCPPBISR(void){
 
     if( AdcaRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
+        /* --- Disables PWM --- */
         mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
+        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        /* -------------------- */
         mainControl.status |= MAIN_STATUS_ADCA_PPB1_TRIP;
         AdcaRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
     }
 
     if( AdcaRegs.ADCEVTSTAT.bit.PPB2TRIPHI ){
+        /* --- Disables PWM --- */
         mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
+        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        /* -------------------- */
         mainControl.status |= MAIN_STATUS_ADCA_PPB2_TRIP;
         AdcaRegs.ADCEVTCLR.bit.PPB2TRIPHI = 1;
     }
 
     if( AdcbRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
+        /* --- Disables PWM --- */
         mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
+        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        /* -------------------- */
         mainControl.status |= MAIN_STATUS_ADCB_PPB1_TRIP;
         AdcbRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
     }

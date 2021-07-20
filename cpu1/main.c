@@ -100,6 +100,10 @@ static void mainInitializeCPU2(void){
     mainInitializeCPU2ADC();
     mainInitializeCPU2Memory();
 
+    /* Acks and clears CPU2->CPU1 data IPC flag */
+    HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+    HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+
     /*
      * Signals to CPU2 that CPU1 initialized already (all required peripheral
      * ownerships were given).
