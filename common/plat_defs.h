@@ -39,6 +39,16 @@ typedef enum{
     PLAT_CMD_CPU2_END
 }platCPU2CommandsEnum_t;
 
+/* CPU1 command errors */
+#define PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE         1
+#define PLAT_CMD_CPU1_ADC_BUFFER_SET_ERR_ADC        2
+#define PLAT_CMD_CPU1_ADC_BUFFER_SET_ERR_SIZE       3
+#define PLAT_CMD_CPU1_PWM_ENABLE_ERR_BUFFER         4
+
+/* CPU2 commands errors */
+#define PLAT_CMD_CPU2_PWM_ENABLE_ERR_STATUS         1
+#define PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_DC     2
+
 /* GPIOs for CPU1 */
 #define PLAT_CPU1_LED                   31U
 

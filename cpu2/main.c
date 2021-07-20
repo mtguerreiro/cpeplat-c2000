@@ -474,6 +474,9 @@ static void mainCommandStatus(uint32_t data){
 static void mainCommandStatusClear(uint32_t data){
 
     mainControl.status = 0;
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.status;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandBlink(uint32_t data){
@@ -489,15 +492,29 @@ static void mainCommandGPIO(uint32_t data){
     state = (data >> 16) & 0xFF;
 
     GPIO_writePin(gpio, state);
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.status;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandPWMEnable(uint32_t data){
 
     /* Doesn't enable PWM if any status flag is set */
-    if( mainControl.status != 0 ) return;
+    if( mainControl.status != 0 ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_STATUS;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
 
-    /* Disables PWM if wrong receives wrong duty cycle */
-    if( data > MAIN_CONFIG_EPWM4_PERIOD ) data = 0;
+    /* Does not change the duty cycle if received an invalid one  */
+    if( data > MAIN_CONFIG_EPWM4_PERIOD ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_DC;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
     // Start ePWM
     EALLOW;
@@ -511,6 +528,9 @@ static void mainCommandPWMEnable(uint32_t data){
 }
 //-----------------------------------------------------------------------------
 static void mainCommandPWMDisable(uint32_t data){
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.status;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
     // Stop ePWM
     EALLOW;
