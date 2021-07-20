@@ -177,6 +177,8 @@ static uint32_t ctlCommandCPU1Blink(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2Status(serialDataExchange_t *data){
 
+    uint16_t status;
+
     ctlIPCCommand(PLAT_CMD_CPU2_STATUS, 0);
 
     /* Now, wait until CPU2 responds */
@@ -186,9 +188,12 @@ static uint32_t ctlCommandCPU2Status(serialDataExchange_t *data){
     HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
     HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
-    data->buffer = (uint8_t *)(IPC_BASE + IPC_O_RECVDATA);
+    status = *((uint16_t *)(IPC_BASE + IPC_O_RECVDATA));
+
+    data->buffer[0] = (uint8_t)(status >> 8);
+    data->buffer[1] = (uint8_t)(status & 0xFF);
     data->size = 2;
-    data->bufferMode = 1;
+    data->bufferMode = 0;
 
     return 1;
 }
