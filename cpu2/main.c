@@ -57,12 +57,6 @@ typedef struct{
 #define MAIN_STATUS_ADCA_PPB1_TRIP      (1 << 0)
 #define MAIN_STATUS_ADCA_PPB2_TRIP      (1 << 1)
 #define MAIN_STATUS_ADCB_PPB1_TRIP      (1 << 2)
-
-
-//#define PWM_PERIOD  (0x03E7>>1)          // PWM1 frequency 999 counts = 200kHz
-//#define PWM_CMPR25  PWM_PERIOD>>2   // PWM1 initial duty cycle = 25%
-//#define SWITCHINGFREQUENCY 200000
-//#define DUTYCYCLE 0.25
 //=============================================================================
 //=============================================================================
 
@@ -71,16 +65,65 @@ typedef struct{
 //=============================================================================
 mainControl_t mainControl;
 
+/* PID */
 float u = 0, u_1 = 0, u_2 = 0, e = 0, e_1 = 0, e_2 = 0;
 
-float a1 = -1.7777777777777777;
-float a2 = 0.7777777777777777;
+float a1 = -1.6327;
+float a2 = 0.6327;
 
-float b0 = 5.756944444444445;
-float b1 = -11.19999938888889;
-float b2 = 5.445833333333333;
+float b0 = 1.5703;
+float b1 = -3.1017;
+float b2 = 1.5321;
 
-float r = 3.5;
+//float a1 = -1.7777777777777777;
+//float a2 = 0.7777777777777777;
+//
+//float b0 = 5.756944444444445;
+//float b1 = -11.19999938888889;
+//float b2 = 5.445833333333333;
+
+//float r = 3.5;
+float r = 5.0;
+
+/* Observer */
+float vc_h = 0.0, vc_h_1 = 0.0;
+float il_h = 0.0, il_h_1 = 0.0;
+float aux1 = -1.0, aux2;
+
+float L = 47e-6;
+float C = 560e-6;
+float R = 1.1;
+//float R = 1.1;
+float ts = 1/200e3;
+float RL = 15e-3;
+float Rds = 15e-3;
+float rho = 0.7576;
+//float rho = 0.3788;
+float alpha = 100.0;
+float K = 100.0;
+
+float a11;
+float a12;
+float b11;
+
+float a21;
+float a22;
+float a23;
+float a24;
+float a25;
+float a26;
+
+//#define a11 (1 - ts * (RL + Rds) / L)
+//#define a12 (-ts / L)
+//#define b11  (ts / L)
+//
+//#define a21 (ts / C)
+//#define a22 (1 - ts / (R * C) - ts * K / C)
+//#define a23 (ts * K / C)
+//#define a24 (-ts / C)
+//#define a25 (rho)
+//#define a26 (alpha)
+
 //=============================================================================
 /*------------------------------- Prototypes --------------------------------*/
 //=============================================================================
@@ -117,6 +160,17 @@ static __interrupt void mainADCPPBISR(void);
 //=============================================================================
 //-----------------------------------------------------------------------------
 void main(void){
+
+    a11 = (1 - ts * (RL + Rds) / L);
+    a12 = (-ts / L);
+    b11 = (ts / L);
+
+    a21 = (ts / C);
+    a22 = (1 - ts / (R * C) - ts * K / C);
+    a23 = (ts * K / C);
+    a24 = (-ts / C);
+    a25 = (rho);
+    a26 = (alpha);
 
     mainInitialize();
 
@@ -310,7 +364,8 @@ static void mainInitializeADCLimits(void){
     //
     //set high and low limits
     //
-    AdcaRegs.ADCPPB2TRIPHI.bit.LIMITHI = 3150;
+    //AdcaRegs.ADCPPB2TRIPHI.bit.LIMITHI = 3150;
+    AdcaRegs.ADCPPB2TRIPHI.bit.LIMITHI = 3500;
     AdcaRegs.ADCPPB2TRIPLO.bit.LIMITLO = 0;
 
     //
@@ -574,16 +629,23 @@ static __interrupt void mainADCAISR(void){
 
     float vc;
     float y;
+    float v_in;
+    float up;
 
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Clear ADC INT1 flag
     PieCtrlRegs.PIEACK.all = 0x0001;     // Acknowledge PIE group 1 to enable further interrupts
 
+    vc = (float)(ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0));
+    vc = vc * ((float)0.007326007326007326);
+
+    v_in = (float)(ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)1));
+    v_in = v_in * ((float)0.007326007326007326);
+
+    /* PID control */
+    /* ============================= */
     if( mainControl.controlActive == 1 ){
-        vc = (float)(ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0));
 
-        y = vc * ((float)0.007326007326007326);
-
-        e = r - y;
+        e = r - vc;
 
         u = -a1 * u_1 - a2 * u_2 + b0 * e + b1 * e_1 + b2 * e_2;
 
@@ -599,13 +661,46 @@ static __interrupt void mainADCAISR(void){
         u_2 = u_1;
         u_1 = u;
     }
+    /* ============================= */
     else{
         EPwm4Regs.CMPA.bit.CMPA = mainControl.u;
     }
+    /* ============================= */
+
+
+    /* Observer */
+    /* ============================= */
+    up = (float)(mainControl.u * ((float)0.002004008016032064));
+    aux1 = vc_h - vc;
+
+    if( aux1 > 0 ){
+        if( aux1 > ((float)(100e-3)) ) aux1 = (float)(1.0);
+    }
+    else{
+        if( aux1 < ((float)(-100e-3)) ) aux1 = (float)(-1.0);
+    }
+
+    if( vc > 0 ) aux2 = vc;
+    else aux2 = -vc;
+
+    il_h_1 = a11 * il_h + a12 * vc_h + b11 * v_in * ((float)(mainControl.u/((float)(499.0))));
+//    il_h_1 = a11 * il_h + a12 * vc_h + b11 * v_in * u;
+    vc_h_1 = a21 * il_h + a22 * vc_h + a23 * vc + a24 * aux1 * (a25 * aux2 + a26);
+
+    il_h = il_h_1;
+    vc_h = vc_h_1;
+
+    /* ============================= */
 
 
     if( mainControl.buffer.i < mainControl.buffer.size ){
         mainControl.buffer.buffer[mainControl.buffer.i] = mainControl.u;
+        mainControl.buffer.i++;
+
+        mainControl.buffer.buffer[mainControl.buffer.i] = (uint16_t)(il_h * 100);
+        mainControl.buffer.i++;
+
+        mainControl.buffer.buffer[mainControl.buffer.i] = (uint16_t)(vc_h * 100);
         mainControl.buffer.i++;
     }
 }
