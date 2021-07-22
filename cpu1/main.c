@@ -183,8 +183,8 @@ static void mainInitializeCPU2ADC(void){
 //-----------------------------------------------------------------------------
 static void mainInitializeCPU2Memory(void){
 
-    /* Gives ownership of RAM sections GS14 and GS15 to CPU2 */
-    MemCfg_setGSRAMMasterSel(PLAT_CPU2_CPU1_RAM_SEC, MEMCFG_GSRAMMASTER_CPU2);
+    /* Gives ownership of selected RAM sections to CPU2 */
+    MemCfg_setGSRAMMasterSel(PLAT_CPU2_BUFFER_RAM_SEC, MEMCFG_GSRAMMASTER_CPU2);
 }
 //-----------------------------------------------------------------------------
 //=============================================================================

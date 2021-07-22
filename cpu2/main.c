@@ -22,6 +22,21 @@
 #include "plat_defs.h"
 
 #include "F2837xD_GlobalVariableDefs.c"
+
+#include "control.h"
+//=============================================================================
+
+//=============================================================================
+/*--------------------------------- Defines ---------------------------------*/
+//=============================================================================
+#define MAIN_CONFIG_EPWM2_PERIOD        (0x03E7>>1)
+#define MAIN_CONFIG_EPWM4_PERIOD        (0x03E7>>1)
+
+#define PLAT_CPU2_BUFFER_MAX          3
+
+#define MAIN_STATUS_ADCA_PPB1_TRIP      (1 << 0)
+#define MAIN_STATUS_ADCA_PPB2_TRIP      (1 << 1)
+#define MAIN_STATUS_ADCB_PPB1_TRIP      (1 << 2)
 //=============================================================================
 
 //===========================================================================
@@ -31,99 +46,28 @@
 typedef void (*mainCommandHandle)(uint32_t data);
 //---------------------------------------------------------------------------
 typedef struct{
-    uint16_t *buffer;
-    uint16_t i;
-    uint16_t size;
-}mainBufferControl_t;
+    uint16_t *p;
+    uint16_t *pInit;
+    uint16_t *pEnd;
+    uint32_t size;
+}mainBuffer_t;
 //---------------------------------------------------------------------------
 typedef struct{
     uint32_t status;
     uint32_t blink;
     mainCommandHandle handle[PLAT_CMD_CPU2_END];
-    mainBufferControl_t buffer;
+    mainBuffer_t buffer[PLAT_CPU2_BUFFER_MAX];
     uint16_t u;
-    uint32_t controlActive;
+    uint16_t ref;
+    uint32_t controlMode;
 }mainControl_t;
 //---------------------------------------------------------------------------
 //===========================================================================
 
 //=============================================================================
-/*--------------------------------- Defines ---------------------------------*/
-//=============================================================================
-#define MAIN_CONFIG_EPWM2_PERIOD        (0x03E7>>1)
-#define MAIN_CONFIG_EPWM4_PERIOD        (0x03E7>>1)
-
-
-#define MAIN_STATUS_ADCA_PPB1_TRIP      (1 << 0)
-#define MAIN_STATUS_ADCA_PPB2_TRIP      (1 << 1)
-#define MAIN_STATUS_ADCB_PPB1_TRIP      (1 << 2)
-//=============================================================================
-//=============================================================================
-
-//=============================================================================
 /*--------------------------------- Globals ---------------------------------*/
 //=============================================================================
 mainControl_t mainControl;
-
-/* PID */
-float u = 0, u_1 = 0, u_2 = 0, e = 0, e_1 = 0, e_2 = 0;
-
-float a1 = -1.6327;
-float a2 = 0.6327;
-
-float b0 = 1.5703;
-float b1 = -3.1017;
-float b2 = 1.5321;
-
-//float a1 = -1.7777777777777777;
-//float a2 = 0.7777777777777777;
-//
-//float b0 = 5.756944444444445;
-//float b1 = -11.19999938888889;
-//float b2 = 5.445833333333333;
-
-//float r = 3.5;
-float r = 5.0;
-
-/* Observer */
-float vc_h = 0.0, vc_h_1 = 0.0;
-float il_h = 0.0, il_h_1 = 0.0;
-float aux1 = -1.0, aux2;
-
-float L = 47e-6;
-float C = 560e-6;
-float R = 1.1;
-//float R = 1.1;
-float ts = 1/200e3;
-float RL = 15e-3;
-float Rds = 15e-3;
-float rho = 0.7576;
-//float rho = 0.3788;
-float alpha = 100.0;
-float K = 100.0;
-
-float a11;
-float a12;
-float b11;
-
-float a21;
-float a22;
-float a23;
-float a24;
-float a25;
-float a26;
-
-//#define a11 (1 - ts * (RL + Rds) / L)
-//#define a12 (-ts / L)
-//#define b11  (ts / L)
-//
-//#define a21 (ts / C)
-//#define a22 (1 - ts / (R * C) - ts * K / C)
-//#define a23 (ts * K / C)
-//#define a24 (-ts / C)
-//#define a25 (rho)
-//#define a26 (alpha)
-
 //=============================================================================
 /*------------------------------- Prototypes --------------------------------*/
 //=============================================================================
@@ -141,6 +85,8 @@ static void mainInitializeEPWM(void);
 static void mainInitializeEPWM2(void);
 static void mainInitializeEPWM4(void);
 
+static uint32_t mainBufferUpdate(void);
+
 static void mainCommandInitializeHandlers(void);
 static void mainCommandStatus(uint32_t data);
 static void mainCommandStatusClear(uint32_t data);
@@ -148,6 +94,7 @@ static void mainCommandBlink(uint32_t data);
 static void mainCommandGPIO(uint32_t data);
 static void mainCommandPWMEnable(uint32_t data);
 static void mainCommandPWMDisable(uint32_t data);
+static void mainCommandCPU2BufferSet(uint32_t data);
 
 static __interrupt void mainIPC0ISR(void);
 
@@ -161,17 +108,6 @@ static __interrupt void mainADCPPBISR(void);
 //-----------------------------------------------------------------------------
 void main(void){
 
-    a11 = (1 - ts * (RL + Rds) / L);
-    a12 = (-ts / L);
-    b11 = (ts / L);
-
-    a21 = (ts / C);
-    a22 = (1 - ts / (R * C) - ts * K / C);
-    a23 = (ts * K / C);
-    a24 = (-ts / C);
-    a25 = (rho);
-    a26 = (alpha);
-
     mainInitialize();
 
     while(1){
@@ -179,7 +115,6 @@ void main(void){
         DEVICE_DELAY_US(1000 * mainControl.blink);
     }
 }
-
 //-----------------------------------------------------------------------------
 //=============================================================================
 
@@ -231,6 +166,9 @@ static void mainInitialize(void){
     /* Initializes CPU2 buffer */
     mainInitializeBuffer();
 
+    /* Initializes control mode */
+    controlInitialize();
+
     /* Enable Global Interrupt (INTM) and realtime interrupt (DBGM) */
     EINT;
     ERTM;
@@ -240,19 +178,6 @@ static void mainInitialize(void){
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeIPC(void){
-
-//    /* Initialize PIE and clear PIE registers. Disables CPU interrupts */
-//    Interrupt_initModule();
-//
-//    /*
-//     * Initialize the PIE vector table with pointers to the shell Interrupt
-//     * Service Routines (ISR).
-//     */
-//    Interrupt_initVectorTable();
-
-//    /* Enable Global Interrupt (INTM) and realtime interrupt (DBGM) */
-//    EINT;
-//    ERTM;
 
     /* Sets up IPC interrupt */
     Interrupt_register(INT_IPC_0, mainIPC0ISR);
@@ -333,7 +258,6 @@ static void mainInitializeADC(void){
     AdccRegs.ADCSOC0CTL.bit.ACQPS = 14;         // Sample window is 100 SYSCLK cycles
     AdccRegs.ADCSOC0CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
 
-
     EDIS;
 }
 //-----------------------------------------------------------------------------
@@ -405,13 +329,6 @@ static void mainInitializeADCISR(void){
 
     Interrupt_register(INT_ADCB_EVT, mainADCPPBISR);
     Interrupt_enable(INT_ADCB_EVT);
-
-    //    // Map ISR functions
-//    EALLOW;
-//    PieVectTable.ADCA1_INT = &adca1_isr;            // Function for ADCA interrupt 1
-//    PieVectTable.ADCA_EVT_INT = &adca_ppb_isr;
-//    PieVectTable.ADCB_EVT_INT = &adca_ppb_isr;
-//    EDIS;
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeEPWM(void){
@@ -428,13 +345,6 @@ static void mainInitializeEPWM(void){
     EALLOW;
     CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 1;
     EDIS;
-
-//    // Start ePWM
-//    EALLOW;
-//    EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
-//    EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
-//    EDIS;
-
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeEPWM2(void){
@@ -498,10 +408,40 @@ static void mainInitializeEPWM4(void){
 //-----------------------------------------------------------------------------
 static void mainInitializeBuffer(void){
 
+    uint32_t k;
+
     /* Initializes the buffer control structure */
-    mainControl.buffer.buffer = (uint16_t *)PLAT_CPU2_CPU1_RAM_ADD;
-    mainControl.buffer.i = 0;
-    mainControl.buffer.size = PLAT_CPU2_CPU1_RAM_SIZE;
+    for(k = 0; k < PLAT_CPU2_BUFFER_MAX; k++){
+        mainControl.buffer[k].p = (uint16_t *)PLAT_CPU2_BUFFER_RAM_SEC;
+        mainControl.buffer[k].pInit = (uint16_t *)PLAT_CPU2_BUFFER_RAM_SEC;
+        mainControl.buffer[k].pEnd = (uint16_t *)PLAT_CPU2_BUFFER_RAM_SEC;
+        mainControl.buffer[k].size = 0;
+    }
+}
+//-----------------------------------------------------------------------------
+static uint32_t mainBufferUpdate(void){
+
+    uint32_t size, k;
+    uint16_t *p;
+
+    size = 0;
+    for(k = 0; k < PLAT_CPU2_BUFFER_MAX; k++){
+        size += mainControl.buffer[k].size;
+    }
+
+    if( size > PLAT_CPU2_BUFFER_RAM_SIZE ){
+        return 1;
+    }
+
+    p = (uint16_t *)PLAT_CPU2_BUFFER_RAM_ADD;
+    for(k = 0; k < PLAT_CPU2_BUFFER_MAX; k++){
+        mainControl.buffer[k].p = p;
+        mainControl.buffer[k].pInit = p;
+        p += mainControl.buffer[k].size;
+        mainControl.buffer[k].pEnd = p;
+    }
+
+    return 0;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandInitializeHandlers(void){
@@ -512,6 +452,7 @@ static void mainCommandInitializeHandlers(void){
     mainControl.handle[PLAT_CMD_CPU2_GPIO] = mainCommandGPIO;
     mainControl.handle[PLAT_CMD_CPU2_PWM_ENABLE] = mainCommandPWMEnable;
     mainControl.handle[PLAT_CMD_CPU2_PWM_DISABLE] = mainCommandPWMDisable;
+    mainControl.handle[PLAT_CMD_CPU2_BUFFER_SET] = mainCommandCPU2BufferSet;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandStatus(uint32_t data){
@@ -548,6 +489,11 @@ static void mainCommandGPIO(uint32_t data){
 //-----------------------------------------------------------------------------
 static void mainCommandPWMEnable(uint32_t data){
 
+    uint32_t mode, ref;
+    uint32_t *p;
+
+    mode = data;
+
     /* Doesn't enable PWM if any status flag is set */
     if( mainControl.status != 0 ){
         HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_STATUS;
@@ -555,9 +501,26 @@ static void mainCommandPWMEnable(uint32_t data){
         return;
     }
 
-    /* Does not change the duty cycle if received an invalid one  */
-    if( data > MAIN_CONFIG_EPWM4_PERIOD ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_DC;
+    /* Checks if control mode is valid */
+    if( mode > PLAT_CPU2_CONTROL_MODE_END ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_MODE;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    /* Gets and checks the reference */
+    p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
+    ref = *p;
+    if( ref > 4095 ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_REF;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    /* Sets the controller */
+    p++;
+    if( controlSet((controlModeEnum_t)mode, p) != 0 ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_MODE;
         HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
         return;
     }
@@ -565,24 +528,19 @@ static void mainCommandPWMEnable(uint32_t data){
     HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
-    mainControl.buffer.i = 0;
-    if( data == 0 ){
-        mainControl.controlActive = 1;
-    }
-    else{
-        mainControl.controlActive = 0;
-    }
+    mainControl.u = 0;
+    mainControl.ref = ref;
+    mainControl.controlMode = mode;
+    mainBufferUpdate();
 
     // Start ePWM
     EALLOW;
+    EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
+    //EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Count up
+
     EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
     EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
-
-    EPwm4Regs.CMPA.bit.CMPA = data;        // Set compare A value
-    mainControl.u = data;
-    //EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Count up
     EDIS;
-
 }
 //-----------------------------------------------------------------------------
 static void mainCommandPWMDisable(uint32_t data){
@@ -592,14 +550,37 @@ static void mainCommandPWMDisable(uint32_t data){
 
     // Stop ePWM
     EALLOW;
-    EPwm2Regs.ETSEL.bit.SOCAEN = 0;             // Disable SOCA
-    EPwm2Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
-
     EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
     mainControl.u = 0;
     //EPwm4Regs.TBCTL.bit.CTRMODE = 3;             //
-    EDIS;
 
+    EPwm2Regs.ETSEL.bit.SOCAEN = 0;             // Disable SOCA
+    EPwm2Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
+    EDIS;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2BufferSet(uint32_t data){
+
+    uint32_t buffer, size;
+
+    buffer = data >> 16;
+    size = data & 0xFFFF;
+
+    if( (buffer + 1) > PLAT_CPU2_BUFFER_MAX ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_BUFFER_SET_INVALID_BUFFER;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    mainControl.buffer[buffer].size = size;
+    if( mainBufferUpdate() != 0 ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_BUFFER_SET_INVALID_SIZE;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
 //=============================================================================
@@ -627,81 +608,31 @@ static __interrupt void  mainIPC0ISR(void){
 //-----------------------------------------------------------------------------
 static __interrupt void mainADCAISR(void){
 
-    float vc;
-    float y;
-    float v_in;
-    float up;
+    float u, y, ref;
+    uint16_t vout;
 
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Clear ADC INT1 flag
     PieCtrlRegs.PIEACK.all = 0x0001;     // Acknowledge PIE group 1 to enable further interrupts
 
-    vc = (float)(ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0));
-    vc = vc * ((float)0.007326007326007326);
+    vout = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0);
 
-    v_in = (float)(ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)1));
-    v_in = v_in * ((float)0.007326007326007326);
+    y = (float)vout;
+    y = y * ((float)0.007326007326007326);
 
-    /* PID control */
-    /* ============================= */
-    if( mainControl.controlActive == 1 ){
+    ref = (float)mainControl.ref;
+    ref = ref * ((float)0.007326007326007326);
 
-        e = r - vc;
+    u = controlControl((controlModeEnum_t)mainControl.controlMode, ref, y);
+    u = u * ((float)MAIN_CONFIG_EPWM2_PERIOD);
+    mainControl.u = (uint16_t)u;
 
-        u = -a1 * u_1 - a2 * u_2 + b0 * e + b1 * e_1 + b2 * e_2;
+    EPwm4Regs.CMPA.bit.CMPA = mainControl.u;
 
-        if( u > 1 ) u = 1;
-        else if ( u < 0 ) u = 0;
-
-        mainControl.u = (uint16_t)(u * MAIN_CONFIG_EPWM4_PERIOD);
-        EPwm4Regs.CMPA.bit.CMPA = mainControl.u;
-
-        e_2 = e_1;
-        e_1 = e;
-
-        u_2 = u_1;
-        u_1 = u;
+    if( mainControl.buffer[0].p != mainControl.buffer[0].pEnd ){
+        *mainControl.buffer[0].p++ = mainControl.u;
     }
-    /* ============================= */
-    else{
-        EPwm4Regs.CMPA.bit.CMPA = mainControl.u;
-    }
-    /* ============================= */
-
-
-    /* Observer */
-    /* ============================= */
-    up = (float)(mainControl.u * ((float)0.002004008016032064));
-    aux1 = vc_h - vc;
-
-    if( aux1 > 0 ){
-        if( aux1 > ((float)(100e-3)) ) aux1 = (float)(1.0);
-    }
-    else{
-        if( aux1 < ((float)(-100e-3)) ) aux1 = (float)(-1.0);
-    }
-
-    if( vc > 0 ) aux2 = vc;
-    else aux2 = -vc;
-
-    il_h_1 = a11 * il_h + a12 * vc_h + b11 * v_in * ((float)(mainControl.u/((float)(499.0))));
-//    il_h_1 = a11 * il_h + a12 * vc_h + b11 * v_in * u;
-    vc_h_1 = a21 * il_h + a22 * vc_h + a23 * vc + a24 * aux1 * (a25 * aux2 + a26);
-
-    il_h = il_h_1;
-    vc_h = vc_h_1;
-
-    /* ============================= */
-
-
-    if( mainControl.buffer.i < mainControl.buffer.size ){
-        mainControl.buffer.buffer[mainControl.buffer.i] = mainControl.u;
-        mainControl.buffer.i++;
-
-        mainControl.buffer.buffer[mainControl.buffer.i] = (uint16_t)(il_h * 100);
-        mainControl.buffer.i++;
-
-        mainControl.buffer.buffer[mainControl.buffer.i] = (uint16_t)(vc_h * 100);
-        mainControl.buffer.i++;
+    if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
+        *mainControl.buffer[1].p++ = vout;
     }
 }
 //-----------------------------------------------------------------------------
@@ -743,78 +674,3 @@ static __interrupt void mainADCPPBISR(void){
 }
 //-----------------------------------------------------------------------------
 //=============================================================================
-
-//////
-////// adca_ppb_isr - ISR for ADCA and ADCB
-//////
-//interrupt void adca_ppb_isr(void)
-//{
-//    //
-//    //warning, you are outside of PPB limits
-//    //
-//
-//    //Routine Vin
-//    if(AdcaRegs.ADCEVTSTAT.bit.PPB1TRIPHI)
-//    {
-//        //
-//        //voltage exceeded high limit
-//        //
-//        //asm("   ESTOP0");
-//
-//        //
-//        //clear the trip flag and continue
-//        //
-//        AdcaRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
-//    }
-//
-//    //Routine IL
-//    if(AdcaRegs.ADCEVTSTAT.bit.PPB2TRIPHI)
-//        {
-//            //
-//            //voltage exceeded high limit
-//            //
-//            //asm("   ESTOP0");
-//
-//            //
-//            //clear the trip flag and continue
-//            //
-//            AdcaRegs.ADCEVTCLR.bit.PPB2TRIPHI = 1;
-//        }
-//
-//
-//    //Routine Vout
-//     if(AdcbRegs.ADCEVTSTAT.bit.PPB1TRIPHI)
-//       {
-//
-//
-//            //
-//            //voltage exceeded high limit
-//            //
-//            //asm("   ESTOP0");
-//
-//            //
-//            //clear the trip flag and continue
-//            //
-//            AdcbRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
-//      }
-//
-//
-////    if(AdcaRegs.ADCEVTSTAT.bit.PPB1TRIPLO)
-////    {
-////        //
-////        //voltage exceeded low limit
-////        //
-////        asm("   ESTOP0");
-////
-////        //
-////        //clear the trip flag and continue
-////        //
-////        AdcaRegs.ADCEVTCLR.bit.PPB1TRIPLO = 1;
-////    }
-//
-//
-//    AdcaRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCA INT2 flag
-//    AdcbRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCB INT2 flag
-//    PieCtrlRegs.PIEACK.all = 0x0200;
-//}
-

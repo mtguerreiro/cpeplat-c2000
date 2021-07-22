@@ -34,11 +34,8 @@
 //=============================================================================
 
 //=============================================================================
-/*--------------------------------- Defines ---------------------------------*/
+/*-------------------------------- Data types -------------------------------*/
 //=============================================================================
-
-#define CTL_CONFIG_ADC_N    6
-
 typedef struct{
     uint16_t *buffer;
     uint32_t i;
@@ -49,7 +46,7 @@ typedef struct{
 //=============================================================================
 /*--------------------------------- Globals ---------------------------------*/
 //=============================================================================
-ctlADCBuffer_t ctlADCBuffer[CTL_CONFIG_ADC_N];
+ctlADCBuffer_t ctlADCBuffer[PLAT_CPU1_ADC_BUFFER_MAX];
 //=============================================================================
 
 //=============================================================================
@@ -77,6 +74,7 @@ static uint32_t ctlCommandCPU1ADCBufferSet(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU1ADCBufferRead(serialDataExchange_t *data);
 
 static uint32_t ctlCommandCPU2BufferRead(serialDataExchange_t *data);
+static uint32_t ctlCommandCPU2BufferSet(serialDataExchange_t *data);
 
 static __interrupt void ctlADCISR(void);
 //=============================================================================
@@ -118,7 +116,8 @@ static void ctlInitialize(void){
     serialRegisterHandle(PLAT_CMD_CPU1_ADC_BUFFER_SET, ctlCommandCPU1ADCBufferSet);
     serialRegisterHandle(PLAT_CMD_CPU1_ADC_BUFFER_READ, ctlCommandCPU1ADCBufferRead);
 
-    serialRegisterHandle(PLAT_CMD_CPU2_BUFFER_READ, ctlCommandCPU2BufferRead);
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_BUFFER_READ, ctlCommandCPU2BufferRead);
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_BUFFER_SET, ctlCommandCPU2BufferSet);
 
     /*
      * Enable ADC ISR. We don't want this interrupt to go through the
@@ -130,7 +129,7 @@ static void ctlInitialize(void){
     Interrupt_enable(INT_ADCA1);
 
     /* Initializes ADC buffer */
-    for(k = 0; k < CTL_CONFIG_ADC_N; k++){
+    for(k = 0; k < PLAT_CPU1_ADC_BUFFER_MAX; k++){
         ctlADCBuffer[k].buffer = (uint16_t *)PLAT_CPU1_ADC_RAM_ADD;
         ctlADCBuffer[k].i = 0;
         ctlADCBuffer[k].size = 0;
@@ -167,14 +166,14 @@ static uint32_t ctlADCBufferUpdate(void){
 
     /* Check if the overall adc buffer size does not exceed memory size */
     size = 0;
-    for(k = 0; k < CTL_CONFIG_ADC_N; k++){
+    for(k = 0; k < PLAT_CPU1_ADC_BUFFER_MAX; k++){
         size += ctlADCBuffer[k].size;
     }
 
     if( size > PLAT_CPU1_ADC_RAM_SIZE ) return 1;
 
     p = (uint16_t *)PLAT_CPU1_ADC_RAM_ADD;
-    for(k = 0; k < CTL_CONFIG_ADC_N; k++){
+    for(k = 0; k < PLAT_CPU1_ADC_BUFFER_MAX; k++){
         ctlADCBuffer[k].buffer = p;
         ctlADCBuffer[k].i = 0;
         p += ctlADCBuffer[k].size;
@@ -284,9 +283,11 @@ static uint32_t ctlCommandCPU2GPIO(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2PWMEnable(serialDataExchange_t *data){
 
-    uint16_t dc;
-    uint32_t status;
+    uint32_t mode, size, status;
+    uint32_t k;
+    uint32_t *p;
 
+    /* Reset buffer pointers to start recording data again */
     if( ctlADCBufferUpdate() != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_PWM_ENABLE_ERR_BUFFER;
         data->size = 1;
@@ -294,10 +295,43 @@ static uint32_t ctlCommandCPU2PWMEnable(serialDataExchange_t *data){
         return 1;
     }
 
-    dc = data->buffer[0] << 8;
-    dc = dc | data->buffer[1];
+    /* Gets data size without accounting for mode byte */
+    size = data->size - 1;
 
-    ctlIPCCommand(PLAT_CMD_CPU2_PWM_ENABLE, dc);
+    /* Checks if data size exceeds buffer size */
+    if( size > PLAT_CPU1_CPU2_DATA_RAM_SIZE ){
+        data->buffer[0] = PLAT_CMD_CPU1_PWM_ENABLE_ERR_RAM_BUFFER;
+        data->size = 1;
+        data->bufferMode = 0;
+        return 1;
+    }
+
+    /* Get the control mode */
+    mode = (uint32_t)data->buffer[0];
+
+    /* Checks if control mode is valid */
+    if( mode > PLAT_CPU2_CONTROL_MODE_END ){
+        data->buffer[0] = PLAT_CMD_CPU1_PWM_ENABLE_ERR_INVALID_MODE;
+        data->size = 1;
+        data->bufferMode = 0;
+        return 1;
+    }
+
+    /* Copies controller data to CPU1->CPU2 memory */
+    k = 0;
+    p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
+    while( k < size ){
+        /* We do 1 + k to account for the mode byte */
+        *p = 0;
+        *p |= ((uint32_t)data->buffer[1 + k++]) << 24;
+        *p |= ((uint32_t)data->buffer[1 + k++]) << 16;
+        *p |= ((uint32_t)data->buffer[1 + k++]) << 8;
+        *p |= ((uint32_t)data->buffer[1 + k++]);
+        p++;
+    }
+
+    /* Sends command to CPU2 */
+    ctlIPCCommand(PLAT_CMD_CPU2_PWM_ENABLE, mode);
 
     if( ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status) != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
@@ -313,6 +347,40 @@ static uint32_t ctlCommandCPU2PWMEnable(serialDataExchange_t *data){
     data->bufferMode = 0;
 
     return 1;
+
+
+//    uint32_t command;
+//    uint32_t status;
+//
+//    if( ctlADCBufferUpdate() != 0 ){
+//        data->buffer[0] = PLAT_CMD_CPU1_PWM_ENABLE_ERR_BUFFER;
+//        data->size = 1;
+//        data->bufferMode = 0;
+//        return 1;
+//    }
+//
+//    /* First, control mode */
+//    command = ((uint32_t)(data->buffer[0])) << 16;
+//
+//    /* Now, additional data */
+//    command |= (((uint32_t)(data->buffer[1])) << 8) | ((uint32_t)(data->buffer[2]));
+//
+//    ctlIPCCommand(PLAT_CMD_CPU2_PWM_ENABLE, command);
+//
+//    if( ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status) != 0 ){
+//        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+//        data->size = 1;
+//    }
+//    else{
+//        data->buffer[0] = 0;
+//        data->buffer[1] = (uint8_t)(status >> 8);
+//        data->buffer[2] = (uint8_t)(status & 0xFF);
+//        data->size = 3;
+//    }
+//
+//    data->bufferMode = 0;
+//
+//    return 1;
 }
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2PWMDisable(serialDataExchange_t *data){
@@ -343,7 +411,7 @@ static uint32_t ctlCommandCPU1ADCBufferSet(serialDataExchange_t *data){
 
     adc = data->buffer[0];
 
-    if( (adc + 1) > CTL_CONFIG_ADC_N ){
+    if( (adc + 1) > PLAT_CPU1_ADC_BUFFER_MAX ){
         data->buffer[0] = PLAT_CMD_CPU1_ADC_BUFFER_SET_ERR_ADC;
         data->size = 1;
         data->bufferMode = 0;
@@ -377,7 +445,7 @@ static uint32_t ctlCommandCPU1ADCBufferRead(serialDataExchange_t *data){
 
     adc = data->buffer[0];
 
-    if( (adc + 1) > CTL_CONFIG_ADC_N ){
+    if( (adc + 1) > PLAT_CPU1_ADC_BUFFER_MAX ){
         data->buffer[0] = PLAT_CMD_CPU1_ADC_BUFFER_SET_ERR_ADC;
         data->size = 1;
         data->bufferMode = 0;
@@ -391,11 +459,41 @@ static uint32_t ctlCommandCPU1ADCBufferRead(serialDataExchange_t *data){
     return 1;
 }
 //-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2BufferSet(serialDataExchange_t *data){
+
+    uint32_t buffersize;
+
+    buffersize = 0;
+    /* First, saves which buffer should be set */
+    buffersize = ((uint32_t)(data->buffer[0]) << 16);
+
+    /* Now, the buffer size */
+    buffersize |= (data->buffer[1] << 8) | data->buffer[2];
+
+    ctlIPCCommand(PLAT_CMD_CPU2_BUFFER_SET, buffersize);
+
+    if( ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &buffersize) != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+        data->size = 1;
+    }
+    else{
+        data->buffer[0] = 0;
+        data->buffer[1] = (uint8_t)(buffersize >> 8);
+        data->buffer[2] = (uint8_t)(buffersize & 0xFF);
+        data->size = 3;
+    }
+
+    data->bufferMode = 0;
+
+    return 1;
+
+}
+//-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2BufferRead(serialDataExchange_t *data){
 
     data->bufferMode = 1;
-    data->buffer = (uint8_t *)PLAT_CPU2_CPU1_RAM_ADD;
-    data->size = PLAT_CPU2_CPU1_RAM_SIZE << 1;
+    data->buffer = (uint8_t *)PLAT_CPU2_BUFFER_RAM_ADD;
+    data->size = PLAT_CPU2_BUFFER_RAM_SIZE << 1;
 
     return 1;
 }

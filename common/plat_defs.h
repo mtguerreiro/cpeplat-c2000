@@ -14,6 +14,13 @@
 /*--------------------------------- Defines ---------------------------------*/
 //=============================================================================
 
+/* CPU2 control modes */
+typedef enum{
+    PLAT_CPU2_CONTROL_MODE_OL = 0,
+    PLAT_CPU2_CONTROL_MODE_PID,
+    PLAT_CPU2_CONTROL_MODE_END
+}platCPU2ControlModeEnum_t;
+
 /* CPU1 commands */
 typedef enum{
     PLAT_CMD_CPU1_BLINK = 1,
@@ -25,7 +32,8 @@ typedef enum{
     PLAT_CMD_CPU1_CPU2_PWM_DISABLE,
     PLAT_CMD_CPU1_ADC_BUFFER_SET,
     PLAT_CMD_CPU1_ADC_BUFFER_READ,
-    PLAT_CMD_CPU2_BUFFER_READ,
+    PLAT_CMD_CPU1_CPU2_BUFFER_SET,
+    PLAT_CMD_CPU1_CPU2_BUFFER_READ,
     PLAT_CMD_CPU1_END
 }platCPU1CommandsEnum_t;
 
@@ -37,18 +45,27 @@ typedef enum{
     PLAT_CMD_CPU2_GPIO,
     PLAT_CMD_CPU2_PWM_ENABLE,
     PLAT_CMD_CPU2_PWM_DISABLE,
+    PLAT_CMD_CPU2_BUFFER_SET,
     PLAT_CMD_CPU2_END
 }platCPU2CommandsEnum_t;
 
+
 /* CPU1 command errors */
-#define PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE         1
-#define PLAT_CMD_CPU1_ADC_BUFFER_SET_ERR_ADC        2
-#define PLAT_CMD_CPU1_ADC_BUFFER_SET_ERR_SIZE       3
-#define PLAT_CMD_CPU1_PWM_ENABLE_ERR_BUFFER         4
+#define PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE             1
+#define PLAT_CMD_CPU1_ADC_BUFFER_SET_ERR_ADC            2
+#define PLAT_CMD_CPU1_ADC_BUFFER_SET_ERR_SIZE           3
+#define PLAT_CMD_CPU1_PWM_ENABLE_ERR_BUFFER             4
+#define PLAT_CMD_CPU1_PWM_ENABLE_ERR_RAM_BUFFER         5
+#define PLAT_CMD_CPU1_PWM_ENABLE_ERR_INVALID_MODE       6
 
 /* CPU2 commands errors */
-#define PLAT_CMD_CPU2_PWM_ENABLE_ERR_STATUS         1
-#define PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_DC     2
+#define PLAT_CMD_CPU2_PWM_ENABLE_ERR_STATUS             1
+#define PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_DC         2
+#define PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_MODE       3
+#define PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_REF        4
+#define PLAT_CMD_CPU2_BUFFER_SET_INVALID_BUFFER         5
+#define PLAT_CMD_CPU2_BUFFER_SET_INVALID_SIZE           6
+
 
 /* GPIOs for CPU1 */
 #define PLAT_CPU1_LED                   31U
@@ -65,16 +82,22 @@ typedef enum{
 #define PLAT_IPC_FLAG_CPU2_INIT         17U
 #define PLAT_IPC_FLAG_MEM_OWN           18U
 
-/* RAM section for CPU2->CPU1 data exchange */
-#define PLAT_CPU2_CPU1_RAM_SEC          (MEMCFG_SECT_GS14 | MEMCFG_SECT_GS15)
-#define PLAT_CPU2_CPU1_RAM_ADD          0x0001A000
-#define PLAT_CPU2_CPU1_RAM_SIZE         8192
-
 /* RAM section for ADC data (saved by CPU1) */
+#define PLAT_CPU1_ADC_BUFFER_MAX        6
 #define PLAT_CPU1_ADC_RAM_SEC           (MEMCFG_SECT_GS0 | MEMCFG_SECT_GS1 | MEMCFG_SECT_GS2 | MEMCFG_SECT_GS3)
 #define PLAT_CPU1_ADC_RAM_ADD           0x0000C000
 #define PLAT_CPU1_ADC_RAM_SIZE          (0x001000 * 4)
 
+/* RAM section for CPU1->CPU2 data exchange */
+#define PLAT_CPU1_CPU2_DATA_RAM_SEC     (MEMCFG_SECT_GS12 | MEMCFG_SECT_GS13)
+#define PLAT_CPU1_CPU2_DATA_RAM_ADD     0x00018000
+#define PLAT_CPU1_CPU2_DATA_RAM_SIZE    (0x001000 * 2)
+
+/* RAM section for CPU2 buffer */
+#define PLAT_CPU2_BUFFER_MAX            3
+#define PLAT_CPU2_BUFFER_RAM_SEC        (MEMCFG_SECT_GS14 | MEMCFG_SECT_GS15)
+#define PLAT_CPU2_BUFFER_RAM_ADD        0x0001A000
+#define PLAT_CPU2_BUFFER_RAM_SIZE       8192
 
 /* ADCs */
 /*
