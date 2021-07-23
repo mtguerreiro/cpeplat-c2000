@@ -88,13 +88,24 @@ static void mainInitializeEPWM4(void);
 static uint32_t mainBufferUpdate(void);
 
 static void mainCommandInitializeHandlers(void);
+
 static void mainCommandStatus(uint32_t data);
 static void mainCommandStatusClear(uint32_t data);
+
 static void mainCommandBlink(uint32_t data);
+
 static void mainCommandGPIO(uint32_t data);
+
 static void mainCommandPWMEnable(uint32_t data);
 static void mainCommandPWMDisable(uint32_t data);
+
 static void mainCommandCPU2BufferSet(uint32_t data);
+
+static void mainCommandCPU2ControlModeSet(uint32_t data);
+static void mainCommandCPU2ControlModeRead(uint32_t data);
+
+static void mainCommandCPU2RefSet(uint32_t data);
+static void mainCommandCPU2RefRead(uint32_t data);
 
 static __interrupt void mainIPC0ISR(void);
 
@@ -448,11 +459,21 @@ static void mainCommandInitializeHandlers(void){
 
     mainControl.handle[PLAT_CMD_CPU2_STATUS] = mainCommandStatus;
     mainControl.handle[PLAT_CMD_CPU2_STATUS_CLEAR] = mainCommandStatusClear;
+
     mainControl.handle[PLAT_CMD_CPU2_BLINK] = mainCommandBlink;
+
     mainControl.handle[PLAT_CMD_CPU2_GPIO] = mainCommandGPIO;
+
     mainControl.handle[PLAT_CMD_CPU2_PWM_ENABLE] = mainCommandPWMEnable;
     mainControl.handle[PLAT_CMD_CPU2_PWM_DISABLE] = mainCommandPWMDisable;
+
     mainControl.handle[PLAT_CMD_CPU2_BUFFER_SET] = mainCommandCPU2BufferSet;
+
+    mainControl.handle[PLAT_CMD_CPU2_CONTROL_MODE_SET] = mainCommandCPU2ControlModeSet;
+    mainControl.handle[PLAT_CMD_CPU2_CONTROL_MODE_READ] = mainCommandCPU2ControlModeRead;
+
+    mainControl.handle[PLAT_CMD_CPU2_REF_SET] = mainCommandCPU2RefSet;
+    mainControl.handle[PLAT_CMD_CPU2_REF_READ] = mainCommandCPU2RefRead;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandStatus(uint32_t data){
@@ -489,11 +510,6 @@ static void mainCommandGPIO(uint32_t data){
 //-----------------------------------------------------------------------------
 static void mainCommandPWMEnable(uint32_t data){
 
-    uint32_t mode, ref;
-    uint32_t *p;
-
-    mode = data;
-
     /* Doesn't enable PWM if any status flag is set */
     if( mainControl.status != 0 ){
         HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_STATUS;
@@ -501,36 +517,9 @@ static void mainCommandPWMEnable(uint32_t data){
         return;
     }
 
-    /* Checks if control mode is valid */
-    if( mode > PLAT_CPU2_CONTROL_MODE_END ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_MODE;
-        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        return;
-    }
-
-    /* Gets and checks the reference */
-    p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
-    ref = *p;
-    if( ref > 4095 ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_REF;
-        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        return;
-    }
-
-    /* Sets the controller */
-    p++;
-    if( controlSet((controlModeEnum_t)mode, p) != 0 ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_INVALID_MODE;
-        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        return;
-    }
-
     HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
-    mainControl.u = 0;
-    mainControl.ref = ref;
-    mainControl.controlMode = mode;
     mainBufferUpdate();
 
     // Start ePWM
@@ -580,6 +569,59 @@ static void mainCommandCPU2BufferSet(uint32_t data){
     }
 
     HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2ControlModeSet(uint32_t data){
+
+    uint32_t *p;
+
+    /* Checks if control mode is valid */
+    if( data > PLAT_CPU2_CONTROL_MODE_END ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_CONTROL_MODE_SET_ERR_INVALID;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    /* Sets the controller */
+    p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
+    if( controlSet((controlModeEnum_t)data, p) != 0 ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_CONTROL_MODE_SET_ERR_INVALID;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+
+    mainControl.controlMode = data;
+    mainControl.u = 0;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2ControlModeRead(uint32_t data){
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.controlMode;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2RefSet(uint32_t data){
+
+    /* checks the reference */
+    if( data > 4095 ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_REF_SET_ERR_INVALID;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+
+    mainControl.ref = data;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2RefRead(uint32_t data){
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.ref;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------

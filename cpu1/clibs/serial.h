@@ -50,7 +50,7 @@
 
 #define SERIAL_CONFIG_SUPPORT_16BIT_BUFFER  1
 
-#define SERIAL_CONFIG_IDS                   15
+#define SERIAL_CONFIG_IDS                   25
 #define SERIAL_CONFIG_RX_TO                 1000
 #define SERIAL_CONFIG_TX_TO                 1000
 

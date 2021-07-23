@@ -92,7 +92,7 @@ static void mainInitialize(void){
 static void mainInitializeCPU2(void){
 
     /* Tells CPU2 to boot from flash */
-    Device_bootCPU2(C1C2_BROM_BOOTMODE_BOOT_FROM_FLASH);
+    //Device_bootCPU2(C1C2_BROM_BOOTMODE_BOOT_FROM_FLASH);
 
     /* CPU2's peripherals initialization */
     mainInitializeCPU2GPIO();

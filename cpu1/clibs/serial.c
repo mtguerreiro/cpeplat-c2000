@@ -431,7 +431,7 @@ static void serialStateSendData(void){
             if( ret != 0 ) break;
             k++;
 
-            data = (*p >> 8) &0xFF;
+            data = (*p >> 8) & 0xFF;
             ret = serialControl.hwWrite(&data, SERIAL_CONFIG_TX_TO);
             if( ret != 0 ) break;
             k++;
