@@ -57,7 +57,7 @@ static void ctlInitialize(void);
 static uint32_t ctlADCBufferUpdate(void);
 
 static void ctlIPCCommand(uint32_t command, uint32_t data);
-static uint32_t ctlIPCDataReceive(uint32_t flag, uint32_t *data);
+static uint32_t ctlIPCCommandResponse(uint32_t flag, uint32_t *status, uint32_t *data);
 
 static uint32_t ctlCommandCPU1Blink(serialDataExchange_t *data);
 
@@ -155,7 +155,7 @@ static void ctlIPCCommand(uint32_t command, uint32_t data){
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CMD;
 }
 //-----------------------------------------------------------------------------
-static uint32_t ctlIPCDataReceive(uint32_t flag, uint32_t *data){
+static uint32_t ctlIPCCommandResponse(uint32_t flag, uint32_t *status, uint32_t *data){
 
     /* Wait until CPU2 sets the selected flag */
     while( !(HWREG(IPC_BASE + IPC_O_STS) & (1UL << flag)) );
@@ -164,8 +164,9 @@ static uint32_t ctlIPCDataReceive(uint32_t flag, uint32_t *data){
     HWREG(IPC_BASE + IPC_O_ACK) = 1UL << flag;
     HWREG(IPC_BASE + IPC_O_CLR) = 1UL << flag;
 
-    /* Saves the data */
-    *data = HWREG(IPC_BASE + IPC_O_RECVDATA);
+    /* Saves status and data */
+    if( status != 0 ) *status = HWREG(IPC_BASE + IPC_O_RECVCOM);
+    if( data != 0 ) *data = HWREG(IPC_BASE + IPC_O_RECVDATA);
 
     return 0;
 }
@@ -208,21 +209,21 @@ static uint32_t ctlCommandCPU1Blink(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2Status(serialDataExchange_t *data){
 
-    uint32_t status;
-    uint32_t dataStatus;
+    uint32_t status, cpu2Status;
 
     ctlIPCCommand(PLAT_CMD_CPU2_STATUS, 0);
-    dataStatus = ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status);
 
-    if( dataStatus != 0 ){
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &cpu2Status) != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
         data->size = 1;
     }
     else{
         data->buffer[0] = 0;
-        data->buffer[1] = (uint8_t)(status >> 8);
-        data->buffer[2] = (uint8_t)(status & 0xFF);
-        data->size = 3;
+        data->buffer[1] = (uint8_t)(cpu2Status >> 24);
+        data->buffer[2] = (uint8_t)(cpu2Status >> 16);
+        data->buffer[3] = (uint8_t)(cpu2Status >> 8);
+        data->buffer[4] = (uint8_t)(cpu2Status);
+        data->size = 5;
     }
 
     data->bufferMode = 0;
@@ -232,21 +233,21 @@ static uint32_t ctlCommandCPU2Status(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2StatusClear(serialDataExchange_t *data){
 
-    uint32_t status;
-    uint32_t dataStatus;
+    uint32_t status, cpu2Status;
 
     ctlIPCCommand(PLAT_CMD_CPU2_STATUS_CLEAR, 0);
-    dataStatus = ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status);
 
-    if( dataStatus != 0 ){
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &cpu2Status) != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
         data->size = 1;
     }
     else{
         data->buffer[0] = 0;
-        data->buffer[1] = (uint8_t)(status >> 8);
-        data->buffer[2] = (uint8_t)(status & 0xFF);
-        data->size = 3;
+        data->buffer[1] = (uint8_t)(cpu2Status >> 24);
+        data->buffer[2] = (uint8_t)(cpu2Status >> 16);
+        data->buffer[3] = (uint8_t)(cpu2Status >> 8);
+        data->buffer[4] = (uint8_t)(cpu2Status);
+        data->size = 5;
     }
 
     data->bufferMode = 0;
@@ -268,9 +269,7 @@ static uint32_t ctlCommandCPU2Blink(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2GPIO(serialDataExchange_t *data){
 
-    uint32_t gpio;
-    uint32_t state;
-    uint32_t cmd;
+    uint32_t gpio, state, cpu2Data, cmd, status;
 
     gpio = *data->buffer++;
     state = *data->buffer;
@@ -278,15 +277,17 @@ static uint32_t ctlCommandCPU2GPIO(serialDataExchange_t *data){
 
     ctlIPCCommand(PLAT_CMD_CPU2_GPIO, cmd);
 
-    if( ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &cmd) != 0 ){
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &cpu2Data) != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
         data->size = 1;
     }
     else{
         data->buffer[0] = 0;
-        data->buffer[1] = (uint8_t)(cmd >> 8);
-        data->buffer[2] = (uint8_t)(cmd & 0xFF);
-        data->size = 3;
+        data->buffer[1] = (uint8_t)(cpu2Data >> 24);
+        data->buffer[2] = (uint8_t)(cpu2Data >> 16);
+        data->buffer[3] = (uint8_t)(cpu2Data >> 8);
+        data->buffer[4] = (uint8_t)(cpu2Data);
+        data->size = 5;
     }
     data->bufferMode = 0;
 
@@ -305,20 +306,20 @@ static uint32_t ctlCommandCPU2PWMEnable(serialDataExchange_t *data){
         return 1;
     }
 
-    status = 0;
-
     /* Sends command to CPU2 */
-    ctlIPCCommand(PLAT_CMD_CPU2_PWM_ENABLE, status);
+    ctlIPCCommand(PLAT_CMD_CPU2_PWM_ENABLE, 0);
 
-    if( ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status) != 0 ){
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, 0) != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
         data->size = 1;
     }
     else{
         data->buffer[0] = 0;
-        data->buffer[1] = (uint8_t)(status >> 8);
-        data->buffer[2] = (uint8_t)(status & 0xFF);
-        data->size = 3;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->size = 5;
     }
 
     data->bufferMode = 0;
@@ -332,15 +333,17 @@ static uint32_t ctlCommandCPU2PWMDisable(serialDataExchange_t *data){
 
     ctlIPCCommand(PLAT_CMD_CPU2_PWM_DISABLE, 0);
 
-    if( ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status) != 0 ){
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, 0) != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
         data->size = 1;
     }
     else{
         data->buffer[0] = 0;
-        data->buffer[1] = (uint8_t)(status >> 8);
-        data->buffer[2] = (uint8_t)(status & 0xFF);
-        data->size = 3;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->size = 5;
     }
 
     data->bufferMode = 0;
@@ -371,12 +374,17 @@ static uint32_t ctlCommandCPU1ADCBufferSet(serialDataExchange_t *data){
         ctlADCBuffer[adc].size = sizeOriginal;
         ctlADCBufferUpdate();
         data->buffer[0] = PLAT_CMD_CPU1_ADC_BUFFER_SET_ERR_SIZE;
+        data->size = 1;
     }
     else{
         data->buffer[0] = 0;
+        data->buffer[1] = 0;
+        data->buffer[2] = (uint8_t)(adc);
+        data->buffer[3] = (uint8_t)(ctlADCBuffer[adc].size >> 8);
+        data->buffer[4] = (uint8_t)(ctlADCBuffer[adc].size & 0xFF);
+        data->size = 5;
     }
 
-    data->size = 1;
     data->bufferMode = 0;
 
     return 1;
@@ -404,9 +412,10 @@ static uint32_t ctlCommandCPU1ADCBufferRead(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2BufferSet(serialDataExchange_t *data){
 
-    uint32_t buffersize;
+    uint32_t buffersize, status, cpu2Data;
 
     buffersize = 0;
+
     /* First, saves which buffer should be set */
     buffersize = ((uint32_t)(data->buffer[0]) << 16);
 
@@ -415,15 +424,21 @@ static uint32_t ctlCommandCPU2BufferSet(serialDataExchange_t *data){
 
     ctlIPCCommand(PLAT_CMD_CPU2_BUFFER_SET, buffersize);
 
-    if( ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &buffersize) != 0 ){
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &cpu2Data) != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
         data->size = 1;
     }
     else{
         data->buffer[0] = 0;
-        data->buffer[1] = (uint8_t)(buffersize >> 8);
-        data->buffer[2] = (uint8_t)(buffersize & 0xFF);
-        data->size = 3;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->buffer[5] = (uint8_t)(cpu2Data >> 24);
+        data->buffer[6] = (uint8_t)(cpu2Data >> 16);
+        data->buffer[7] = (uint8_t)(cpu2Data >> 8);
+        data->buffer[8] = (uint8_t)(cpu2Data);
+        data->size = 9;
     }
 
     data->bufferMode = 0;
@@ -434,27 +449,49 @@ static uint32_t ctlCommandCPU2BufferSet(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2BufferRead(serialDataExchange_t *data){
 
+    uint32_t buffer, status, size, address;
+
+    buffer = data->buffer[0];
+
+    /* Get the address of the data */
+    ctlIPCCommand(PLAT_CMD_CPU2_BUFFER_ADDRESS, buffer);
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &address) != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+        data->size = 1;
+        data->bufferMode = 0;
+        return 1;
+    }
+
+    /* Checks if CPU2 accepted the command */
+    if( status != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU2_BUFFER_SET_INVALID_BUFFER;
+        data->size = 1;
+        data->bufferMode = 0;
+        return 1;
+    }
+
+    /* Get the number of samples available for the selected buffer */
+    ctlIPCCommand(PLAT_CMD_CPU2_BUFFER_SAMPLES, buffer);
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &size) != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+        data->size = 1;
+        data->bufferMode = 0;
+        return 1;
+    }
+
     data->bufferMode = 1;
-    data->buffer = (uint8_t *)PLAT_CPU2_BUFFER_RAM_ADD;
-    data->size = PLAT_CPU2_BUFFER_RAM_SIZE << 1;
+    data->buffer = (uint8_t *)(address);
+    data->size = size << 1;
 
     return 1;
 }
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2ControlModeSet(serialDataExchange_t *data){
 
-    uint32_t mode, status, size, k;
+    uint32_t mode, status, size, k, cpu2Data;
     uint32_t *p;
 
     mode = (uint32_t)data->buffer[0];
-
-    /* Checks if control mode is valid */
-    if( mode > PLAT_CPU2_CONTROL_MODE_END ){
-        data->buffer[0] = PLAT_CMD_CPU1_CONTROL_MODE_SET_ERR_INVALID;
-        data->size = 1;
-        data->bufferMode = 0;
-        return 1;
-    }
 
     /* Gets data size without accounting for mode byte */
     size = data->size - 1;
@@ -483,15 +520,21 @@ static uint32_t ctlCommandCPU2ControlModeSet(serialDataExchange_t *data){
     /* Sends command to CPU2 */
     ctlIPCCommand(PLAT_CMD_CPU2_CONTROL_MODE_SET, mode);
 
-    if( ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status) != 0 ){
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &cpu2Data) != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
         data->size = 1;
     }
     else{
         data->buffer[0] = 0;
-        data->buffer[1] = (uint8_t)(status >> 8);
-        data->buffer[2] = (uint8_t)(status & 0xFF);
-        data->size = 3;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->buffer[5] = (uint8_t)(cpu2Data >> 24);
+        data->buffer[6] = (uint8_t)(cpu2Data >> 16);
+        data->buffer[7] = (uint8_t)(cpu2Data >> 8);
+        data->buffer[8] = (uint8_t)(cpu2Data);
+        data->size = 9;
     }
 
     data->bufferMode = 0;
@@ -501,23 +544,29 @@ static uint32_t ctlCommandCPU2ControlModeSet(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2ControlModeRead(serialDataExchange_t *data){
 
-    uint32_t mode;
+    uint32_t status, mode;
 
-    mode = 0;
+    mode = data->buffer[0];
 
     /* Sends command to CPU2 */
     ctlIPCCommand(PLAT_CMD_CPU2_CONTROL_MODE_READ, mode);
 
     /* Gets the response */
-    if( ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &mode) != 0 ){
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &mode) != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
         data->size = 1;
     }
     else{
         data->buffer[0] = 0;
-        data->buffer[1] = (uint8_t)(mode >> 8);
-        data->buffer[2] = (uint8_t)(mode & 0xFF);
-        data->size = 3;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->buffer[5] = (uint8_t)(mode >> 24);
+        data->buffer[6] = (uint8_t)(mode >> 16);
+        data->buffer[7] = (uint8_t)(mode >> 8);
+        data->buffer[8] = (uint8_t)(mode);
+        data->size = 9;
     }
 
     data->bufferMode = 0;
@@ -527,31 +576,29 @@ static uint32_t ctlCommandCPU2ControlModeRead(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2RefSet(serialDataExchange_t *data){
 
-    uint32_t ref;
+    uint32_t status, ref;
 
     ref = (((uint32_t)(data->buffer[0])) << 8) | ((uint32_t)data->buffer[1]);
-
-    /* Checks if reference is valid */
-    if( ref > 4095 ){
-        data->buffer[0] = PLAT_CMD_CPU1_REF_SET_ERR_INVALID;
-        data->size = 1;
-        data->bufferMode = 0;
-        return 1;
-    }
 
     /* Sends command to CPU2 */
     ctlIPCCommand(PLAT_CMD_CPU2_REF_SET, ref);
 
     /* Gets the response */
-    if( ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &ref) != 0 ){
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &ref) != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
         data->size = 1;
     }
     else{
         data->buffer[0] = 0;
-        data->buffer[1] = (uint8_t)(ref >> 8);
-        data->buffer[2] = (uint8_t)(ref & 0xFF);
-        data->size = 3;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->buffer[5] = (uint8_t)(ref >> 24);
+        data->buffer[6] = (uint8_t)(ref >> 16);
+        data->buffer[7] = (uint8_t)(ref >> 8);
+        data->buffer[8] = (uint8_t)(ref);
+        data->size = 9;
     }
 
     data->bufferMode = 0;
@@ -561,22 +608,27 @@ static uint32_t ctlCommandCPU2RefSet(serialDataExchange_t *data){
 //-----------------------------------------------------------------------------
 static uint32_t ctlCommandCPU2RefRead(serialDataExchange_t *data){
 
-    uint32_t ref;
+    uint32_t status, ref;
 
-    ref = 0;
     /* Sends command to CPU2 */
-    ctlIPCCommand(PLAT_CMD_CPU2_REF_READ, ref);
+    ctlIPCCommand(PLAT_CMD_CPU2_REF_READ, 0);
 
     /* Gets the response */
-    if( ctlIPCDataReceive(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &ref) != 0 ){
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &ref) != 0 ){
         data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
         data->size = 1;
     }
     else{
         data->buffer[0] = 0;
-        data->buffer[1] = (uint8_t)(ref >> 8);
-        data->buffer[2] = (uint8_t)(ref & 0xFF);
-        data->size = 3;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->buffer[5] = (uint8_t)(ref >> 24);
+        data->buffer[6] = (uint8_t)(ref >> 16);
+        data->buffer[7] = (uint8_t)(ref >> 8);
+        data->buffer[8] = (uint8_t)(ref);
+        data->size = 9;
     }
 
     data->bufferMode = 0;

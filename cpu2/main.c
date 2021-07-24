@@ -100,6 +100,8 @@ static void mainCommandPWMEnable(uint32_t data);
 static void mainCommandPWMDisable(uint32_t data);
 
 static void mainCommandCPU2BufferSet(uint32_t data);
+static void mainCommandCPU2BufferSamples(uint32_t data);
+static void mainCommandCPU2BufferAddress(uint32_t data);
 
 static void mainCommandCPU2ControlModeSet(uint32_t data);
 static void mainCommandCPU2ControlModeRead(uint32_t data);
@@ -468,6 +470,9 @@ static void mainCommandInitializeHandlers(void){
     mainControl.handle[PLAT_CMD_CPU2_PWM_DISABLE] = mainCommandPWMDisable;
 
     mainControl.handle[PLAT_CMD_CPU2_BUFFER_SET] = mainCommandCPU2BufferSet;
+    mainControl.handle[PLAT_CMD_CPU2_BUFFER_SAMPLES] = mainCommandCPU2BufferSamples;
+    mainControl.handle[PLAT_CMD_CPU2_BUFFER_ADDRESS] = mainCommandCPU2BufferAddress;
+
 
     mainControl.handle[PLAT_CMD_CPU2_CONTROL_MODE_SET] = mainCommandCPU2ControlModeSet;
     mainControl.handle[PLAT_CMD_CPU2_CONTROL_MODE_READ] = mainCommandCPU2ControlModeRead;
@@ -479,6 +484,7 @@ static void mainCommandInitializeHandlers(void){
 static void mainCommandStatus(uint32_t data){
 
     HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.status;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
@@ -487,6 +493,7 @@ static void mainCommandStatusClear(uint32_t data){
     mainControl.status = 0;
 
     HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.status;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
@@ -504,7 +511,8 @@ static void mainCommandGPIO(uint32_t data){
 
     GPIO_writePin(gpio, state);
 
-    HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.status;
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
@@ -512,12 +520,14 @@ static void mainCommandPWMEnable(uint32_t data){
 
     /* Doesn't enable PWM if any status flag is set */
     if( mainControl.status != 0 ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_STATUS;
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_PWM_ENABLE_ERR_STATUS;
         HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
         return;
     }
 
     HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
     mainBufferUpdate();
@@ -534,7 +544,8 @@ static void mainCommandPWMEnable(uint32_t data){
 //-----------------------------------------------------------------------------
 static void mainCommandPWMDisable(uint32_t data){
 
-    HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.status;
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
     // Stop ePWM
@@ -550,25 +561,75 @@ static void mainCommandPWMDisable(uint32_t data){
 //-----------------------------------------------------------------------------
 static void mainCommandCPU2BufferSet(uint32_t data){
 
-    uint32_t buffer, size;
+    uint32_t buffer, size, sizeOriginal;
 
     buffer = data >> 16;
     size = data & 0xFFFF;
 
     if( (buffer + 1) > PLAT_CPU2_BUFFER_MAX ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_BUFFER_SET_INVALID_BUFFER;
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_BUFFER_SET_INVALID_BUFFER;
         HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
         return;
     }
 
+    sizeOriginal = mainControl.buffer[buffer].size;
+
+    /* Tries to update buffer. If it fails, restores the original size. */
     mainControl.buffer[buffer].size = size;
     if( mainBufferUpdate() != 0 ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_BUFFER_SET_INVALID_SIZE;
+        mainControl.buffer[buffer].size = sizeOriginal;
+        mainBufferUpdate();
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_BUFFER_SET_INVALID_SIZE;
         HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
         return;
     }
 
-    HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2BufferSamples(uint32_t data){
+
+    uint32_t buffer, size;
+
+    buffer = data;
+
+    /* Checks if buffer is valid */
+    if( (buffer + 1) > PLAT_CPU2_BUFFER_MAX ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_BUFFER_SET_INVALID_BUFFER;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    size = (uint32_t)(mainControl.buffer[buffer].p - mainControl.buffer[buffer].pInit);
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = size;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2BufferAddress(uint32_t data){
+
+    uint32_t buffer, address;
+
+    buffer = data;
+
+    /* Checks if buffer is valid */
+    if( (buffer + 1) > PLAT_CPU2_BUFFER_MAX ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_BUFFER_SET_INVALID_BUFFER;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    address = (uint32_t)(mainControl.buffer[buffer].pInit);
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = address;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
@@ -578,7 +639,8 @@ static void mainCommandCPU2ControlModeSet(uint32_t data){
 
     /* Checks if control mode is valid */
     if( data > PLAT_CPU2_CONTROL_MODE_END ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_CONTROL_MODE_SET_ERR_INVALID;
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_CONTROL_MODE_SET_ERR_INVALID;
         HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
         return;
     }
@@ -586,12 +648,14 @@ static void mainCommandCPU2ControlModeSet(uint32_t data){
     /* Sets the controller */
     p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
     if( controlSet((controlModeEnum_t)data, p) != 0 ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_CONTROL_MODE_SET_ERR_INVALID;
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_CONTROL_MODE_SET_ERR_INVALID;
         HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
         return;
     }
 
-    HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
     mainControl.controlMode = data;
@@ -600,7 +664,16 @@ static void mainCommandCPU2ControlModeSet(uint32_t data){
 //-----------------------------------------------------------------------------
 static void mainCommandCPU2ControlModeRead(uint32_t data){
 
+    /* Checks if control mode is valid */
+    if( data > PLAT_CPU2_CONTROL_MODE_END ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_CONTROL_MODE_SET_ERR_INVALID;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
     HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.controlMode;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
@@ -608,20 +681,23 @@ static void mainCommandCPU2RefSet(uint32_t data){
 
     /* checks the reference */
     if( data > 4095 ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = PLAT_CMD_CPU2_REF_SET_ERR_INVALID;
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_REF_SET_ERR_INVALID;
         HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
         return;
     }
 
-    HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
-    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-
     mainControl.ref = data;
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.ref;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandCPU2RefRead(uint32_t data){
 
     HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.ref;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
