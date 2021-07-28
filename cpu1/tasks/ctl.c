@@ -82,6 +82,11 @@ static uint32_t ctlCommandCPU2ControlModeRead(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2RefSet(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2RefRead(serialDataExchange_t *data);
 
+static uint32_t ctlCommandCPU2TripSet(serialDataExchange_t *data);
+static uint32_t ctlCommandCPU2TripEnable(serialDataExchange_t *data);
+static uint32_t ctlCommandCPU2TripDisable(serialDataExchange_t *data);
+static uint32_t ctlCommandCPU2TripRead(serialDataExchange_t *data);
+
 static __interrupt void ctlADCISR(void);
 //=============================================================================
 
@@ -130,6 +135,11 @@ static void ctlInitialize(void){
 
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_REF_SET, ctlCommandCPU2RefSet);
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_REF_READ, ctlCommandCPU2RefRead);
+
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_TRIP_SET, ctlCommandCPU2TripSet);
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_TRIP_ENABLE, ctlCommandCPU2TripEnable);
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_TRIP_DISABLE, ctlCommandCPU2TripDisable);
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_TRIP_READ, ctlCommandCPU2TripRead);
 
     /*
      * Enable ADC ISR. We don't want this interrupt to go through the
@@ -636,6 +646,135 @@ static uint32_t ctlCommandCPU2RefRead(serialDataExchange_t *data){
     return 1;
 }
 //-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2TripSet(serialDataExchange_t *data){
+
+    uint32_t adcref, status;
+
+    adcref = ((uint32_t)(data->buffer[0]) << 16);
+    adcref |= (((uint32_t)(data->buffer[1])) << 8) | ((uint32_t)data->buffer[2]);
+
+    /* Sends command to CPU2 */
+    ctlIPCCommand(PLAT_CMD_CPU2_TRIP_SET, adcref);
+
+    /* Gets the response */
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &adcref) != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+        data->size = 1;
+    }
+    else{
+        data->buffer[0] = 0;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->buffer[5] = (uint8_t)(adcref >> 24);
+        data->buffer[6] = (uint8_t)(adcref >> 16);
+        data->buffer[7] = (uint8_t)(adcref >> 8);
+        data->buffer[8] = (uint8_t)(adcref);
+        data->size = 9;
+    }
+
+    data->bufferMode = 0;
+
+    return 1;
+}
+//-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2TripEnable(serialDataExchange_t *data){
+
+    uint32_t adc, status;
+
+    adc = (uint32_t)(data->buffer[0]);
+
+    /* Sends command to CPU2 */
+    ctlIPCCommand(PLAT_CMD_CPU2_TRIP_ENABLE, adc);
+
+    /* Gets the response */
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &adc) != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+        data->size = 1;
+    }
+    else{
+        data->buffer[0] = 0;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->buffer[5] = (uint8_t)(adc >> 24);
+        data->buffer[6] = (uint8_t)(adc >> 16);
+        data->buffer[7] = (uint8_t)(adc >> 8);
+        data->buffer[8] = (uint8_t)(adc);
+        data->size = 9;
+    }
+
+    data->bufferMode = 0;
+
+    return 1;
+}
+//-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2TripDisable(serialDataExchange_t *data){
+
+    uint32_t adc, status;
+
+    adc = (uint32_t)(data->buffer[0]);
+
+    /* Sends command to CPU2 */
+    ctlIPCCommand(PLAT_CMD_CPU2_TRIP_DISABLE, adc);
+
+    /* Gets the response */
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &adc) != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+        data->size = 1;
+    }
+    else{
+        data->buffer[0] = 0;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->buffer[5] = (uint8_t)(adc >> 24);
+        data->buffer[6] = (uint8_t)(adc >> 16);
+        data->buffer[7] = (uint8_t)(adc >> 8);
+        data->buffer[8] = (uint8_t)(adc);
+        data->size = 9;
+    }
+
+    data->bufferMode = 0;
+
+    return 1;
+}
+//-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2TripRead(serialDataExchange_t *data){
+
+    uint32_t adc, status;
+
+    adc = (uint32_t)(data->buffer[0]);
+
+    /* Sends command to CPU2 */
+    ctlIPCCommand(PLAT_CMD_CPU2_TRIP_READ, adc);
+
+    /* Gets the response */
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &adc) != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+        data->size = 1;
+    }
+    else{
+        data->buffer[0] = 0;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->buffer[5] = (uint8_t)(adc >> 24);
+        data->buffer[6] = (uint8_t)(adc >> 16);
+        data->buffer[7] = (uint8_t)(adc >> 8);
+        data->buffer[8] = (uint8_t)(adc);
+        data->size = 9;
+    }
+
+    data->bufferMode = 0;
+
+    return 1;
+}
+//-----------------------------------------------------------------------------
 //=============================================================================
 
 
@@ -659,24 +798,26 @@ static __interrupt void ctlADCISR(void){
     }
 
     if( ctlADCBuffer[2].i < ctlADCBuffer[2].size ){
-        ctlADCBuffer[2].buffer[ctlADCBuffer[2].i] = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0);
+        ctlADCBuffer[2].buffer[ctlADCBuffer[2].i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)2);
         ctlADCBuffer[2].i++;
     }
 
     if( ctlADCBuffer[3].i < ctlADCBuffer[3].size ){
-        ctlADCBuffer[3].buffer[ctlADCBuffer[3].i] = ADC_readResult(ADCCRESULT_BASE, (ADC_SOCNumber)0);
+        ctlADCBuffer[3].buffer[ctlADCBuffer[3].i] = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0);
         ctlADCBuffer[3].i++;
     }
 
     if( ctlADCBuffer[4].i < ctlADCBuffer[4].size ){
-        ctlADCBuffer[4].buffer[ctlADCBuffer[4].i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)2);
+        ctlADCBuffer[4].buffer[ctlADCBuffer[4].i] = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)1);
         ctlADCBuffer[4].i++;
     }
 
     if( ctlADCBuffer[5].i < ctlADCBuffer[5].size ){
-        ctlADCBuffer[5].buffer[ctlADCBuffer[5].i] = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)1);
+        ctlADCBuffer[5].buffer[ctlADCBuffer[5].i] = ADC_readResult(ADCCRESULT_BASE, (ADC_SOCNumber)0);
         ctlADCBuffer[5].i++;
     }
+
+
 }
 //-----------------------------------------------------------------------------
 //=============================================================================

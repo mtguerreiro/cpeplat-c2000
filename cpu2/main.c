@@ -32,11 +32,14 @@
 #define MAIN_CONFIG_EPWM2_PERIOD        (0x03E7>>1)
 #define MAIN_CONFIG_EPWM4_PERIOD        (0x03E7>>1)
 
-#define PLAT_CPU2_BUFFER_MAX          3
+#define PLAT_CPU2_BUFFER_MAX            3
 
 #define MAIN_STATUS_ADCA_PPB1_TRIP      (1 << 0)
 #define MAIN_STATUS_ADCA_PPB2_TRIP      (1 << 1)
-#define MAIN_STATUS_ADCB_PPB1_TRIP      (1 << 2)
+#define MAIN_STATUS_ADCA_PPB3_TRIP      (1 << 2)
+#define MAIN_STATUS_ADCB_PPB1_TRIP      (1 << 3)
+#define MAIN_STATUS_ADCB_PPB2_TRIP      (1 << 4)
+#define MAIN_STATUS_ADCC_PPB1_TRIP      (1 << 5)
 //=============================================================================
 
 //===========================================================================
@@ -108,6 +111,11 @@ static void mainCommandCPU2ControlModeRead(uint32_t data);
 
 static void mainCommandCPU2RefSet(uint32_t data);
 static void mainCommandCPU2RefRead(uint32_t data);
+
+static void mainCommandCPU2TripSet(uint32_t data);
+static void mainCommandCPU2TripEnable(uint32_t data);
+static void mainCommandCPU2TripDisable(uint32_t data);
+static void mainCommandCPU2TripRead(uint32_t data);
 
 static __interrupt void mainIPC0ISR(void);
 
@@ -278,54 +286,89 @@ static void mainInitializeADCLimits(void){
 
     EALLOW;
 
-    //Vin limit
+    /*
+     * Sets ADCA SOC 0 limit. In the buck platform, ADCA SOC0 (ADCIN_A1)
+     * corresponds to Vin.
+     */
     AdcaRegs.ADCPPB1CONFIG.bit.CONFIG = 0;  //PPB1A is associated with soc0 -> Vin
 
-    //
-    //set high and low limits
-    //
-    AdcaRegs.ADCPPB1TRIPHI.bit.LIMITHI = 4000;
+    /* Clears upper and lower limits */
+    AdcaRegs.ADCPPB1TRIPHI.bit.LIMITHI = 0;
     AdcaRegs.ADCPPB1TRIPLO.bit.LIMITLO = 0;
 
-    //
-    //enable high events to generate interrupt
-    //
+    /* Sets upper events to generate interrupts */
     AdcaRegs.ADCEVTINTSEL.bit.PPB1TRIPHI = 1;
     AdcaRegs.ADCEVTINTSEL.bit.PPB1TRIPLO = 0;
 
+    /*
+     * Sets ADCA SOC 1 limit. In the buck platform, ADCA SOC1 (ADCIN_A4)
+     * corresponds to Vin_buck.
+     */
+    AdcaRegs.ADCPPB2CONFIG.bit.CONFIG = 1;  //PPB2A is associated with soc1 -> Vin_buck
 
-
-    //IL limit
-    AdcaRegs.ADCPPB2CONFIG.bit.CONFIG = 2;  //PPB2A is associated with soc2 -> IL
-
-    //
-    //set high and low limits
-    //
-    //AdcaRegs.ADCPPB2TRIPHI.bit.LIMITHI = 3150;
-    AdcaRegs.ADCPPB2TRIPHI.bit.LIMITHI = 3500;
+    /* Clears upper and lower limits */
+    AdcaRegs.ADCPPB2TRIPHI.bit.LIMITHI = 0;
     AdcaRegs.ADCPPB2TRIPLO.bit.LIMITLO = 0;
 
-    //
-    //enable high events to generate interrupt
-    //
+    /* Sets upper events to generate interrupts */
     AdcaRegs.ADCEVTINTSEL.bit.PPB2TRIPHI = 1;
     AdcaRegs.ADCEVTINTSEL.bit.PPB2TRIPLO = 0;
 
+    /*
+     * Sets ADCA SOC 2 limit. In the buck platform, ADCA SOC2 (ADCIN_A5)
+     * corresponds to IL.
+     */
+    AdcaRegs.ADCPPB3CONFIG.bit.CONFIG = 2;  //PPB3A is associated with soc2 -> IL
 
+    /* Clears upper and lower limits */
+    AdcaRegs.ADCPPB3TRIPHI.bit.LIMITHI = 0;
+    AdcaRegs.ADCPPB3TRIPLO.bit.LIMITLO = 0;
 
-    //Vout
+    /* Sets upper events to generate interrupts */
+    AdcaRegs.ADCEVTINTSEL.bit.PPB3TRIPHI = 1;
+    AdcaRegs.ADCEVTINTSEL.bit.PPB3TRIPLO = 0;
+
+    /*
+     * Sets ADCB SOC 0 limit. In the buck platform, ADCB SOC0 (ADCIN_B4)
+     * corresponds to Vout.
+     */
     AdcbRegs.ADCPPB1CONFIG.bit.CONFIG = 0;  //PPB1B is associated with soc0 -> Vout
 
-    //
-    //set high and low limits
-    //
-    AdcbRegs.ADCPPB1TRIPHI.bit.LIMITHI = 4000;
+    /* Clears upper and lower limits */
+    AdcbRegs.ADCPPB1TRIPHI.bit.LIMITHI = 0;
     AdcbRegs.ADCPPB1TRIPLO.bit.LIMITLO = 0;
-    //
-    //enable high events to generate interrupt
-    //
+
+    /* Sets upper events to generate interrupts */
     AdcbRegs.ADCEVTINTSEL.bit.PPB1TRIPHI = 1;
     AdcbRegs.ADCEVTINTSEL.bit.PPB1TRIPLO = 0;
+
+    /*
+     * Sets ADCB SOC 1 limit. In the buck platform, ADCB SOC1 (ADCIN_B5)
+     * corresponds to IL_avg.
+     */
+    AdcbRegs.ADCPPB2CONFIG.bit.CONFIG = 1;  //PPB2B is associated with soc1 -> IL_avg
+
+    /* Clears upper and lower limits */
+    AdcbRegs.ADCPPB2TRIPHI.bit.LIMITHI = 0;
+    AdcbRegs.ADCPPB2TRIPLO.bit.LIMITLO = 0;
+
+    /* Sets upper events to generate interrupts */
+    AdcbRegs.ADCEVTINTSEL.bit.PPB2TRIPHI = 1;
+    AdcbRegs.ADCEVTINTSEL.bit.PPB2TRIPLO = 0;
+
+    /*
+     * Sets ADCC SOC 0 limit. In the buck platform, ADCC SOC0 (ADCIN_C4)
+     * corresponds to Vout_buck.
+     */
+    AdccRegs.ADCPPB1CONFIG.bit.CONFIG = 0;  //PPB1C is associated with soc0 -> Vout_buck
+
+    /* Clears upper and lower limits */
+    AdccRegs.ADCPPB1TRIPHI.bit.LIMITHI = 0;
+    AdccRegs.ADCPPB1TRIPLO.bit.LIMITLO = 0;
+
+    /* Sets upper events to generate interrupts */
+    AdccRegs.ADCEVTINTSEL.bit.PPB1TRIPHI = 1;
+    AdccRegs.ADCEVTINTSEL.bit.PPB1TRIPLO = 0;
 
     EDIS;
 }
@@ -342,6 +385,9 @@ static void mainInitializeADCISR(void){
 
     Interrupt_register(INT_ADCB_EVT, mainADCPPBISR);
     Interrupt_enable(INT_ADCB_EVT);
+
+    Interrupt_register(INT_ADCC_EVT, mainADCPPBISR);
+    Interrupt_enable(INT_ADCC_EVT);
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeEPWM(void){
@@ -479,6 +525,11 @@ static void mainCommandInitializeHandlers(void){
 
     mainControl.handle[PLAT_CMD_CPU2_REF_SET] = mainCommandCPU2RefSet;
     mainControl.handle[PLAT_CMD_CPU2_REF_READ] = mainCommandCPU2RefRead;
+
+    mainControl.handle[PLAT_CMD_CPU2_TRIP_SET] = mainCommandCPU2TripSet;
+    mainControl.handle[PLAT_CMD_CPU2_TRIP_ENABLE] = mainCommandCPU2TripEnable;
+    mainControl.handle[PLAT_CMD_CPU2_TRIP_DISABLE] = mainCommandCPU2TripDisable;
+    mainControl.handle[PLAT_CMD_CPU2_TRIP_READ] = mainCommandCPU2TripRead;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandStatus(uint32_t data){
@@ -701,6 +752,172 @@ static void mainCommandCPU2RefRead(uint32_t data){
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
+static void mainCommandCPU2TripSet(uint32_t data){
+
+    uint32_t adc, ref;
+
+    adc = data >> 16;
+
+    if( (adc + 1) > 6 ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_TRIP_SET_ERR_INVALID_ADC;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    ref = data & 0xFFFF;
+
+    if( ref > 4095 ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_TRIP_SET_ERR_INVALID_REF;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    EALLOW;
+    if( adc == 0 ){
+        AdcaRegs.ADCPPB1TRIPHI.bit.LIMITHI = (uint16_t)ref;
+    }
+    else if( adc == 1){
+        AdcaRegs.ADCPPB2TRIPHI.bit.LIMITHI = (uint16_t)ref;
+    }
+    else if( adc == 2){
+        AdcaRegs.ADCPPB3TRIPHI.bit.LIMITHI = (uint16_t)ref;
+    }
+    else if( adc == 3){
+        AdcbRegs.ADCPPB1TRIPHI.bit.LIMITHI = (uint16_t)ref;
+    }
+    else if( adc == 4){
+        AdcbRegs.ADCPPB2TRIPHI.bit.LIMITHI = (uint16_t)ref;
+    }
+    else if( adc == 5){
+        AdccRegs.ADCPPB1TRIPHI.bit.LIMITHI = (uint16_t)ref;
+    }
+    EDIS;
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2TripEnable(uint32_t data){
+
+    uint32_t adc;
+
+    adc = data;
+
+    if( (adc + 1) > 6 ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_TRIP_SET_ERR_INVALID_ADC;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    EALLOW;
+    if( adc == 0 ){
+        AdcaRegs.ADCEVTINTSEL.bit.PPB1TRIPHI = 1;
+    }
+    else if( adc == 1){
+        AdcaRegs.ADCEVTINTSEL.bit.PPB2TRIPHI = 1;
+    }
+    else if( adc == 2){
+        AdcaRegs.ADCEVTINTSEL.bit.PPB3TRIPHI = 1;
+    }
+    else if( adc == 3){
+        AdcbRegs.ADCEVTINTSEL.bit.PPB1TRIPHI = 1;
+    }
+    else if( adc == 4){
+        AdcbRegs.ADCEVTINTSEL.bit.PPB2TRIPHI = 1;
+    }
+    else if( adc == 5){
+        AdccRegs.ADCEVTINTSEL.bit.PPB1TRIPHI = 1;
+    }
+    EDIS;
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2TripDisable(uint32_t data){
+
+    uint32_t adc;
+
+    adc = data;
+
+    if( (adc + 1) > 6 ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_TRIP_SET_ERR_INVALID_ADC;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    EALLOW;
+    if( adc == 0 ){
+        AdcaRegs.ADCEVTINTSEL.bit.PPB1TRIPHI = 0;
+    }
+    else if( adc == 1){
+        AdcaRegs.ADCEVTINTSEL.bit.PPB2TRIPHI = 0;
+    }
+    else if( adc == 2){
+        AdcaRegs.ADCEVTINTSEL.bit.PPB3TRIPHI = 0;
+    }
+    else if( adc == 3){
+        AdcbRegs.ADCEVTINTSEL.bit.PPB1TRIPHI = 0;
+    }
+    else if( adc == 4){
+        AdcbRegs.ADCEVTINTSEL.bit.PPB2TRIPHI = 0;
+    }
+    else if( adc == 5){
+        AdccRegs.ADCEVTINTSEL.bit.PPB1TRIPHI = 0;
+    }
+    EDIS;
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2TripRead(uint32_t data){
+
+    uint32_t adc, ref;
+
+    adc = data >> 16;
+
+    if( (adc + 1) > 6 ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_TRIP_SET_ERR_INVALID_ADC;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    EALLOW;
+    if( adc == 0 ){
+        ref = AdcaRegs.ADCPPB1TRIPHI.bit.LIMITHI;
+    }
+    else if( adc == 1){
+        ref = AdcaRegs.ADCPPB2TRIPHI.bit.LIMITHI;
+    }
+    else if( adc == 2){
+        ref = AdcaRegs.ADCPPB3TRIPHI.bit.LIMITHI;
+    }
+    else if( adc == 3){
+        ref = AdcbRegs.ADCPPB1TRIPHI.bit.LIMITHI;
+    }
+    else if( adc == 4){
+        ref = AdcbRegs.ADCPPB2TRIPHI.bit.LIMITHI;
+    }
+    else if( adc == 5){
+        ref = AdccRegs.ADCPPB1TRIPHI.bit.LIMITHI;
+    }
+    EDIS;
+
+    data = (adc << 16) | ref;
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
 //=============================================================================
 
 //=============================================================================
@@ -773,7 +990,17 @@ static __interrupt void mainADCPPBISR(void){
         HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
         /* -------------------- */
         mainControl.status |= MAIN_STATUS_ADCA_PPB2_TRIP;
-        AdcaRegs.ADCEVTCLR.bit.PPB2TRIPHI = 1;
+        AdcaRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
+    }
+
+    if( AdcaRegs.ADCEVTSTAT.bit.PPB3TRIPHI ){
+        /* --- Disables PWM --- */
+        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
+        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        /* -------------------- */
+        mainControl.status |= MAIN_STATUS_ADCA_PPB3_TRIP;
+        AdcaRegs.ADCEVTCLR.bit.PPB3TRIPHI = 1;
     }
 
     if( AdcbRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
@@ -786,8 +1013,29 @@ static __interrupt void mainADCPPBISR(void){
         AdcbRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
     }
 
+    if( AdcbRegs.ADCEVTSTAT.bit.PPB2TRIPHI ){
+        /* --- Disables PWM --- */
+        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
+        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        /* -------------------- */
+        mainControl.status |= MAIN_STATUS_ADCB_PPB2_TRIP;
+        AdcbRegs.ADCEVTCLR.bit.PPB2TRIPHI = 1;
+    }
+
+    if( AdccRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
+        /* --- Disables PWM --- */
+        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
+        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        /* -------------------- */
+        mainControl.status |= MAIN_STATUS_ADCC_PPB1_TRIP;
+        AdccRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
+    }
+
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCA INT2 flag
     AdcbRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCB INT2 flag
+    AdccRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCB INT2 flag
     PieCtrlRegs.PIEACK.all = 0x0200;
 }
 //-----------------------------------------------------------------------------
