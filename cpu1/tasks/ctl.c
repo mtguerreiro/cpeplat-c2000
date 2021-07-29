@@ -650,8 +650,8 @@ static uint32_t ctlCommandCPU2TripSet(serialDataExchange_t *data){
 
     uint32_t adcref, status;
 
-    adcref = ((uint32_t)(data->buffer[0]) << 16);
-    adcref |= (((uint32_t)(data->buffer[1])) << 8) | ((uint32_t)data->buffer[2]);
+    adcref = ((uint32_t)(data->buffer[0]));
+    adcref |= (((uint32_t)(data->buffer[1])) << 24) | ((uint32_t)data->buffer[2] << 16);
 
     /* Sends command to CPU2 */
     ctlIPCCommand(PLAT_CMD_CPU2_TRIP_SET, adcref);

@@ -756,7 +756,7 @@ static void mainCommandCPU2TripSet(uint32_t data){
 
     uint32_t adc, ref;
 
-    adc = data >> 16;
+    adc = data & 0xFFFF;
 
     if( (adc + 1) > 6 ){
         HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
@@ -765,7 +765,7 @@ static void mainCommandCPU2TripSet(uint32_t data){
         return;
     }
 
-    ref = data & 0xFFFF;
+    ref = data >> 16;
 
     if( ref > 4095 ){
         HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
@@ -882,7 +882,7 @@ static void mainCommandCPU2TripRead(uint32_t data){
 
     uint32_t adc, ref;
 
-    adc = data >> 16;
+    adc = data & 0xFFFF;
 
     if( (adc + 1) > 6 ){
         HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
@@ -912,7 +912,7 @@ static void mainCommandCPU2TripRead(uint32_t data){
     }
     EDIS;
 
-    data = (adc << 16) | ref;
+    data = (ref << 16) | adc;
     HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
     HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
