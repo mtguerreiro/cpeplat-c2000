@@ -12,6 +12,7 @@
 
 #include "openloop.h"
 #include "pid.h"
+#include "sfb.h"
 //===========================================================================
 
 //===========================================================================
@@ -27,6 +28,7 @@ controlMode_t controlMode[CONTROL_MODE_END];
 
 openloop_t openloop;
 pid_t pid;
+sfb_t sfb;
 //===========================================================================
 
 //===========================================================================
@@ -35,13 +37,14 @@ pid_t pid;
 //---------------------------------------------------------------------------
 void controlInitialize(void){
 
-//    controlMode[CONTROL_MODE_OL].set = openloopSet;
     controlMode[CONTROL_MODE_OL].run = openloopControl;
     controlMode[CONTROL_MODE_OL].controller = (void *)&openloop;
 
-//    controlMode[CONTROL_MODE_PID].set = pidSet;
     controlMode[CONTROL_MODE_PID].run = pidControl;
     controlMode[CONTROL_MODE_PID].controller = (void *)&pid;
+
+    controlMode[CONTROL_MODE_SFB].run = sfbControl;
+    controlMode[CONTROL_MODE_SFB].controller = (void *)&sfb;
 }
 //---------------------------------------------------------------------------
 uint32_t controlSet(controlModeEnum_t mode, uint32_t *p){
@@ -64,6 +67,10 @@ uint32_t controlSet(controlModeEnum_t mode, uint32_t *p){
         b2 = *((float *)(&p[4]));
 
         pidInitialize(&pid, a1, a2, b0, b1, b2);
+    }
+
+    else if( mode == CONTROL_MODE_SFB ){
+        sfbInitialize(&sfb, p);
     }
 
     else{
