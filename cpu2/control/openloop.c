@@ -21,7 +21,7 @@ void openloopInitialize(openloop_t *ol, float dc){
     ol->dc = dc;
 }
 //---------------------------------------------------------------------------
-float openloopControl(void *olt, float r, float y){
+float openloopControl(void *olt, uint16_t ref, platCPU2ControlData_t *data){
 
     openloop_t *ol;
 
