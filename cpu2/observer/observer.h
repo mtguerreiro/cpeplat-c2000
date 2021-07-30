@@ -1,12 +1,12 @@
 /*
- * control.h
+ * observer.h
  *
- *  Created on: 22.07.2021
+ *  Created on: 30.07.2021
  *      Author: LRS
  */
 
-#ifndef CONTROL_H_
-#define CONTROL_H_
+#ifndef OBSERVER_OBSERVER_H_
+#define OBSERVER_OBSERVER_H_
 
 //===========================================================================
 /*-------------------------------- Includes -------------------------------*/
@@ -20,34 +20,35 @@
 /*------------------------------- Data types ------------------------------*/
 //===========================================================================
 typedef enum{
-    CONTROL_MODE_OL = PLAT_CPU2_CONTROL_MODE_OL,
-    CONTROL_MODE_PID = PLAT_CPU2_CONTROL_MODE_PID,
-    CONTROL_MODE_END = PLAT_CPU2_CONTROL_MODE_END
-}controlModeEnum_t;
+    OBSERVER_MODE_CIMINI = PLAT_CPU2_OBSERVER_MODE_CIMINI,
+    OBSERVER_MODE_END = PLAT_CPU2_OBSERVER_MODE_END
+}observerModeEnum_t;
 
+typedef struct{
+    float il;
+    float vc;
+}observerStates_t;
 //---------------------------------------------------------------------------
 //typedef void (*controlSet)(void *controller, void *p);
 //---------------------------------------------------------------------------
-typedef float (*controlRun)(void *controller, float ref, float y);
+typedef void (*observerRun)(void *observer, float *measurements, observerStates_t *states);
 //---------------------------------------------------------------------------
 typedef struct{
 
-    void *controller;
-//
-//    controlSet set;
+    void *observer;
 
-    controlRun run;
+    observerRun run;
 
-}controlMode_t;
+}observerMode_t;
 //---------------------------------------------------------------------------
 //===========================================================================
 
 //===========================================================================
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
-void controlInitialize(void);
-float controlControl(controlModeEnum_t mode, float r, float y);
-uint32_t controlSet(controlModeEnum_t mode, uint32_t *p);
+void observerInitialize(void);
+void observerObserve(observerModeEnum_t mode, float *measurements, observerStates_t *states);
+uint32_t observerSet(observerModeEnum_t mode, uint32_t *p);
 //===========================================================================
 
-#endif /* CONTROL_H_ */
+#endif /* OBSERVER_OBSERVER_H_ */

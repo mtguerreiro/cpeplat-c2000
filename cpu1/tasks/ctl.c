@@ -79,6 +79,9 @@ static uint32_t ctlCommandCPU2BufferSet(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2ControlModeSet(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2ControlModeRead(serialDataExchange_t *data);
 
+static uint32_t ctlCommandCPU2ObserverModeSet(serialDataExchange_t *data);
+static uint32_t ctlCommandCPU2ObserverModeRead(serialDataExchange_t *data);
+
 static uint32_t ctlCommandCPU2RefSet(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2RefRead(serialDataExchange_t *data);
 
@@ -132,6 +135,9 @@ static void ctlInitialize(void){
 
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_CONTROL_MODE_SET, ctlCommandCPU2ControlModeSet);
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_CONTROL_MODE_READ, ctlCommandCPU2ControlModeRead);
+
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_OBSERVER_MODE_SET, ctlCommandCPU2ObserverModeSet);
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_OBSERVER_MODE_READ, ctlCommandCPU2ObserverModeRead);
 
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_REF_SET, ctlCommandCPU2RefSet);
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_REF_READ, ctlCommandCPU2RefRead);
@@ -560,6 +566,94 @@ static uint32_t ctlCommandCPU2ControlModeRead(serialDataExchange_t *data){
 
     /* Sends command to CPU2 */
     ctlIPCCommand(PLAT_CMD_CPU2_CONTROL_MODE_READ, mode);
+
+    /* Gets the response */
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &mode) != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+        data->size = 1;
+    }
+    else{
+        data->buffer[0] = 0;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->buffer[5] = (uint8_t)(mode >> 24);
+        data->buffer[6] = (uint8_t)(mode >> 16);
+        data->buffer[7] = (uint8_t)(mode >> 8);
+        data->buffer[8] = (uint8_t)(mode);
+        data->size = 9;
+    }
+
+    data->bufferMode = 0;
+
+    return 1;
+}
+//-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2ObserverModeSet(serialDataExchange_t *data){
+
+    uint32_t mode, status, size, k, cpu2Data;
+    uint32_t *p;
+
+    mode = (uint32_t)data->buffer[0];
+
+    /* Gets data size without accounting for mode byte */
+    size = data->size - 1;
+
+    /* Checks if data size exceeds buffer size */
+    if( size > PLAT_CPU1_CPU2_DATA_RAM_SIZE ){
+        data->buffer[0] = PLAT_CMD_CPU1_CONTROL_MODE_ERR_RAM_BUFFER;
+        data->size = 1;
+        data->bufferMode = 0;
+        return 1;
+    }
+
+    /* Copies observer data to CPU1->CPU2 memory */
+    k = 0;
+    p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
+    while( k < size ){
+        /* We do 1 + k to account for the mode byte */
+        *p = 0;
+        *p |= ((uint32_t)data->buffer[1 + k++]) << 24;
+        *p |= ((uint32_t)data->buffer[1 + k++]) << 16;
+        *p |= ((uint32_t)data->buffer[1 + k++]) << 8;
+        *p |= ((uint32_t)data->buffer[1 + k++]);
+        p++;
+    }
+
+    /* Sends command to CPU2 */
+    ctlIPCCommand(PLAT_CMD_CPU2_OBSERVER_MODE_SET, mode);
+
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &cpu2Data) != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+        data->size = 1;
+    }
+    else{
+        data->buffer[0] = 0;
+        data->buffer[1] = (uint8_t)(status >> 24);
+        data->buffer[2] = (uint8_t)(status >> 16);
+        data->buffer[3] = (uint8_t)(status >> 8);
+        data->buffer[4] = (uint8_t)(status);
+        data->buffer[5] = (uint8_t)(cpu2Data >> 24);
+        data->buffer[6] = (uint8_t)(cpu2Data >> 16);
+        data->buffer[7] = (uint8_t)(cpu2Data >> 8);
+        data->buffer[8] = (uint8_t)(cpu2Data);
+        data->size = 9;
+    }
+
+    data->bufferMode = 0;
+
+    return 1;
+}
+//-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2ObserverModeRead(serialDataExchange_t *data){
+
+    uint32_t status, mode;
+
+    mode = data->buffer[0];
+
+    /* Sends command to CPU2 */
+    ctlIPCCommand(PLAT_CMD_CPU2_OBSERVER_MODE_READ, mode);
 
     /* Gets the response */
     if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &mode) != 0 ){

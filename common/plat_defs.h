@@ -21,6 +21,13 @@ typedef enum{
     PLAT_CPU2_CONTROL_MODE_END
 }platCPU2ControlModeEnum_t;
 
+/* CPU2 observer modes */
+typedef enum{
+    PLAT_CPU2_OBSERVER_MODE_NONE = 0,
+    PLAT_CPU2_OBSERVER_MODE_CIMINI,
+    PLAT_CPU2_OBSERVER_MODE_END
+}platCPU2ObserverModeEnum_t;
+
 /* CPU1 commands */
 typedef enum{
     PLAT_CMD_CPU1_BLINK = 1,
@@ -42,6 +49,8 @@ typedef enum{
     PLAT_CMD_CPU1_CPU2_TRIP_ENABLE,
     PLAT_CMD_CPU1_CPU2_TRIP_DISABLE,
     PLAT_CMD_CPU1_CPU2_TRIP_READ,
+    PLAT_CMD_CPU1_CPU2_OBSERVER_MODE_SET,
+    PLAT_CMD_CPU1_CPU2_OBSERVER_MODE_READ,
     PLAT_CMD_CPU1_END
 }platCPU1CommandsEnum_t;
 
@@ -58,6 +67,8 @@ typedef enum{
     PLAT_CMD_CPU2_BUFFER_ADDRESS,
     PLAT_CMD_CPU2_CONTROL_MODE_SET,
     PLAT_CMD_CPU2_CONTROL_MODE_READ,
+    PLAT_CMD_CPU2_OBSERVER_MODE_SET,
+    PLAT_CMD_CPU2_OBSERVER_MODE_READ,
     PLAT_CMD_CPU2_REF_SET,
     PLAT_CMD_CPU2_REF_READ,
     PLAT_CMD_CPU2_TRIP_SET,
@@ -66,7 +77,6 @@ typedef enum{
     PLAT_CMD_CPU2_TRIP_READ,
     PLAT_CMD_CPU2_END
 }platCPU2CommandsEnum_t;
-
 
 /* CPU1 command errors */
 #define PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE             1
@@ -81,6 +91,7 @@ typedef enum{
 /* CPU2 commands errors */
 #define PLAT_CMD_CPU2_PWM_ENABLE_ERR_STATUS             1
 #define PLAT_CMD_CPU2_CONTROL_MODE_SET_ERR_INVALID      1
+#define PLAT_CMD_CPU2_OBSERVER_MODE_SET_ERR_INVALID     1
 #define PLAT_CMD_CPU2_REF_SET_ERR_INVALID               1
 #define PLAT_CMD_CPU2_BUFFER_SET_INVALID_BUFFER         1
 #define PLAT_CMD_CPU2_BUFFER_SET_INVALID_SIZE           2
@@ -128,6 +139,7 @@ typedef enum{
  * ADCB - SOC1: ADCIN_B5 (IL_avg)
  * ADCC - SOC0: ADCIN_C4 (Vout_buck)
  */
+
 //=============================================================================
 
 #endif /* PLAT_DEFS_H_ */
