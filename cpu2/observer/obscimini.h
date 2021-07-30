@@ -13,7 +13,7 @@
 //===========================================================================
 #include <stdint.h>
 
-#include "observer.h"
+#include "plat_defs.h"
 //===========================================================================
 
 //===========================================================================
@@ -43,7 +43,7 @@ typedef struct{
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
 void obsciminiInitialize(obscimini_t *cimini, uint32_t *p);
-void obsciminiObserve(void *cimini, float *measurements, observerStates_t *states);
+void obsciminiObserve(void *cimini, platCPU2ObserverData_t *data);
 //===========================================================================
 
 #endif /* OBSERVER_OBSCIMINI_H_ */

@@ -36,15 +36,15 @@ void obsciminiInitialize(obscimini_t *cimini, uint32_t *p){
     cimini->vc_h_1 = 0;
 }
 //---------------------------------------------------------------------------
-void obsciminiObserve(void *ciminit, float *measurements, observerStates_t *states){
+void obsciminiObserve(void *ciminit, platCPU2ObserverData_t *data){
 
     float vin, u, vc;
     float aux1, aux2;
     obscimini_t *cimini;
 
-    vc = measurements[0];
-    vin = measurements[1];
-    u = measurements[2];
+    vc = ((float)(*data->adc[3])) * ((float)0.007326007326007326);
+    vin = ((float)(*data->adc[1])) * ((float)0.007326007326007326);
+    u = ((float)(*data->u)) * ((float)0.002004008016032064);
 
     cimini = (obscimini_t *)ciminit;
 
@@ -69,8 +69,8 @@ void obsciminiObserve(void *ciminit, float *measurements, observerStates_t *stat
     cimini->il_h = cimini->il_h_1;
     cimini->vc_h = cimini->vc_h_1;
 
-    states->il = cimini->il_h_1;
-    states->vc = cimini->vc_h_1;
+    data->states[0] = cimini->il_h_1;
+    data->states[1] = cimini->vc_h_1;
 }
 //---------------------------------------------------------------------------
 //===========================================================================

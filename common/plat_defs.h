@@ -28,6 +28,13 @@ typedef struct{
     uint16_t *u;
 }platCPU2ControlData_t;
 
+/* CPU2 observer data */
+typedef struct{
+    uint16_t *adc[6];
+    uint16_t *u;
+    float states[2];
+}platCPU2ObserverData_t;
+
 /* CPU2 observer modes */
 typedef enum{
     PLAT_CPU2_OBSERVER_MODE_NONE = 0,

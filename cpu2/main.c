@@ -69,11 +69,10 @@ typedef struct{
     uint16_t ref;
 
     uint32_t controlMode;
-
     platCPU2ControlData_t controlData;
 
     uint32_t observerMode;
-    observerStates_t observerStates;
+    platCPU2ObserverData_t observerData;
 
 }mainControl_t;
 //---------------------------------------------------------------------------
@@ -522,6 +521,9 @@ static uint32_t mainBufferUpdate(void){
 //-----------------------------------------------------------------------------
 static void mainInitializeControlStructure(void){
 
+    controlInitialize();
+    observerInitialize();
+
     mainControl.controlMode = 0;
 
     mainControl.ref = 0;
@@ -537,6 +539,15 @@ static void mainInitializeControlStructure(void){
     mainControl.controlData.adc[5] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
 
     mainControl.controlData.u = &mainControl.u;
+
+    mainControl.observerData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.observerData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.observerData.adc[2] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
+    mainControl.observerData.adc[3] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.observerData.adc[4] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.observerData.adc[5] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+
+    mainControl.observerData.u = &mainControl.u;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandInitializeHandlers(void){
@@ -1033,12 +1044,8 @@ static __interrupt void mainADCAISR(void){
     PieCtrlRegs.PIEACK.all = 0x0001;     // Acknowledge PIE group 1 to enable further interrupts
 
     if( mainControl.observerMode != PLAT_CPU2_OBSERVER_MODE_NONE ){
-        float vin;
-        vin = (float)ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)1);
-        vin = vin * ((float)0.007326007326007326);
-        mainControl.adcMeasurements[0] = y;
-        mainControl.adcMeasurements[1] = vin;
-        observerObserve(mainControl.observerMode, mainControl.adcMeasurements, &mainControl.observerStates);
+        observerObserve((observerModeEnum_t)mainControl.observerMode, \
+                        &mainControl.observerData);
     }
 
 
@@ -1055,10 +1062,10 @@ static __interrupt void mainADCAISR(void){
         *mainControl.buffer[0].p++ = mainControl.u;
     }
     if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
-        *mainControl.buffer[1].p++ = (uint16_t)mainControl.observerStates.il;
+        *mainControl.buffer[1].p++ = (uint16_t)mainControl.observerData.states[0];
     }
     if( mainControl.buffer[2].p != mainControl.buffer[2].pEnd ){
-        *mainControl.buffer[2].p++ = (uint16_t)mainControl.observerStates.vc;
+        *mainControl.buffer[2].p++ = (uint16_t)mainControl.observerData.states[1];
     }
 }
 //-----------------------------------------------------------------------------

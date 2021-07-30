@@ -31,7 +31,7 @@ typedef struct{
 //---------------------------------------------------------------------------
 //typedef void (*controlSet)(void *controller, void *p);
 //---------------------------------------------------------------------------
-typedef void (*observerRun)(void *observer, float *measurements, observerStates_t *states);
+typedef void (*observerRun)(void *observer, platCPU2ObserverData_t *data);
 //---------------------------------------------------------------------------
 typedef struct{
 
@@ -47,7 +47,7 @@ typedef struct{
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
 void observerInitialize(void);
-void observerObserve(observerModeEnum_t mode, float *measurements, observerStates_t *states);
+void observerObserve(observerModeEnum_t mode, platCPU2ObserverData_t *data);
 uint32_t observerSet(observerModeEnum_t mode, uint32_t *p);
 //===========================================================================
 

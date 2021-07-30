@@ -46,9 +46,9 @@ uint32_t observerSet(observerModeEnum_t mode, uint32_t *p){
     return 0;
 }
 //---------------------------------------------------------------------------
-void observerObserve(observerModeEnum_t mode, float *measurements, observerStates_t *states){
+void observerObserve(observerModeEnum_t mode, platCPU2ObserverData_t *data){
 
-    observerMode[mode].run(observerMode[mode].observer, measurements, states);
+    observerMode[mode].run(observerMode[mode].observer, data);
 }
 //---------------------------------------------------------------------------
 //===========================================================================
