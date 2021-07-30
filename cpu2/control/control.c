@@ -74,11 +74,11 @@ uint32_t controlSet(controlModeEnum_t mode, uint32_t *p){
     return 0;
 }
 //---------------------------------------------------------------------------
-float controlControl(controlModeEnum_t mode, float r, float y){
+float controlControl(controlModeEnum_t mode, uint16_t ref, platCPU2ControlData_t *data){
 
     float u;
 
-    u = controlMode[mode].run(controlMode[mode].controller, r, y);
+    u = controlMode[mode].run(controlMode[mode].controller, ref, data);
 
     return u;
 }

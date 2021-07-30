@@ -30,12 +30,19 @@ void pidInitialize(pid_t *pid, float a1, float a2, float b0, float b1, float b2)
     pid->u_2 = 0;
 }
 //---------------------------------------------------------------------------
-float pidControl(void *pidt, float r, float y){
+float pidControl(void *pidt, uint16_t ref, platCPU2ControlData_t *data){
 
-    float e, u;
+    float r;
+    float y;
+    float e;
+    float u;
+
     pid_t *pid;
 
     pid = (pid_t *)pidt;
+
+    r = ((float)ref) * ((float)0.007326007326007326);
+    y = ((float)(*data->adc[3])) * ((float)0.007326007326007326);
 
     e = r - y;
 

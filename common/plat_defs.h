@@ -16,10 +16,17 @@
 
 /* CPU2 control modes */
 typedef enum{
-    PLAT_CPU2_CONTROL_MODE_OL = 0,
+    PLAT_CPU2_CONTROL_MODE_NONE = 0,
+    PLAT_CPU2_CONTROL_MODE_OL,
     PLAT_CPU2_CONTROL_MODE_PID,
     PLAT_CPU2_CONTROL_MODE_END
 }platCPU2ControlModeEnum_t;
+
+/* CPU2 control data */
+typedef struct{
+    uint16_t *adc[6];
+    uint16_t *u;
+}platCPU2ControlData_t;
 
 /* CPU1 commands */
 typedef enum{

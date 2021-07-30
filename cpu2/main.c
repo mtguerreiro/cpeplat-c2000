@@ -62,7 +62,11 @@ typedef struct{
     mainBuffer_t buffer[PLAT_CPU2_BUFFER_MAX];
     uint16_t u;
     uint16_t ref;
+
     uint32_t controlMode;
+    platCPU2ControlData_t controlData;
+
+//    uint16_t *data[7];
 }mainControl_t;
 //---------------------------------------------------------------------------
 //===========================================================================
@@ -87,6 +91,8 @@ static void mainInitializeADCISR(void);
 static void mainInitializeEPWM(void);
 static void mainInitializeEPWM2(void);
 static void mainInitializeEPWM4(void);
+
+static void mainInitializeControlStructure(void);
 
 static uint32_t mainBufferUpdate(void);
 
@@ -186,6 +192,9 @@ static void mainInitialize(void){
 
     /* Initializes CPU2 buffer */
     mainInitializeBuffer();
+
+    /* Initializes CPU2's control structure */
+    mainInitializeControlStructure();
 
     /* Initializes control mode */
     controlInitialize();
@@ -503,6 +512,25 @@ static uint32_t mainBufferUpdate(void){
     return 0;
 }
 //-----------------------------------------------------------------------------
+static void mainInitializeControlStructure(void){
+
+    mainControl.controlMode = 0;
+
+    mainControl.ref = 0;
+    mainControl.status = 0;
+
+    mainControl.u = 0;
+
+    mainControl.controlData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.controlData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.controlData.adc[2] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
+    mainControl.controlData.adc[3] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.controlData.adc[4] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.controlData.adc[5] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+
+    mainControl.controlData.u = &mainControl.u;
+}
+//-----------------------------------------------------------------------------
 static void mainCommandInitializeHandlers(void){
 
     mainControl.handle[PLAT_CMD_CPU2_STATUS] = mainCommandStatus;
@@ -697,12 +725,14 @@ static void mainCommandCPU2ControlModeSet(uint32_t data){
     }
 
     /* Sets the controller */
-    p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
-    if( controlSet((controlModeEnum_t)data, p) != 0 ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
-        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_CONTROL_MODE_SET_ERR_INVALID;
-        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        return;
+    if( data != PLAT_CPU2_CONTROL_MODE_NONE ){
+        p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
+        if( controlSet((controlModeEnum_t)data, p) != 0 ){
+            HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+            HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_CONTROL_MODE_SET_ERR_INVALID;
+            HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+            return;
+        }
     }
 
     HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
@@ -943,32 +973,26 @@ static __interrupt void  mainIPC0ISR(void){
 //-----------------------------------------------------------------------------
 static __interrupt void mainADCAISR(void){
 
-    float u, y, ref;
-    uint16_t vout;
+    float u;
 
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Clear ADC INT1 flag
     PieCtrlRegs.PIEACK.all = 0x0001;     // Acknowledge PIE group 1 to enable further interrupts
 
-    vout = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0);
-
-    y = (float)vout;
-    y = y * ((float)0.007326007326007326);
-
-    ref = (float)mainControl.ref;
-    ref = ref * ((float)0.007326007326007326);
-
-    u = controlControl((controlModeEnum_t)mainControl.controlMode, ref, y);
-    u = u * ((float)MAIN_CONFIG_EPWM2_PERIOD);
-    mainControl.u = (uint16_t)u;
+    if( mainControl.controlMode != PLAT_CPU2_CONTROL_MODE_NONE ){
+        u = controlControl((controlModeEnum_t)mainControl.controlMode,\
+                           mainControl.ref, &mainControl.controlData);
+        u = u * ((float)MAIN_CONFIG_EPWM2_PERIOD);
+        mainControl.u = (uint16_t)u;
+    }
 
     EPwm4Regs.CMPA.bit.CMPA = mainControl.u;
 
     if( mainControl.buffer[0].p != mainControl.buffer[0].pEnd ){
         *mainControl.buffer[0].p++ = mainControl.u;
     }
-    if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
-        *mainControl.buffer[1].p++ = vout;
-    }
+//    if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
+//        *mainControl.buffer[1].p++ = vout;
+//    }
 }
 //-----------------------------------------------------------------------------
 static __interrupt void mainADCPPBISR(void){

@@ -28,7 +28,7 @@ typedef enum{
 //---------------------------------------------------------------------------
 //typedef void (*controlSet)(void *controller, void *p);
 //---------------------------------------------------------------------------
-typedef float (*controlRun)(void *controller, float ref, float y);
+typedef float (*controlRun)(void *controller, uint16_t ref, platCPU2ControlData_t *data);
 //---------------------------------------------------------------------------
 typedef struct{
 
@@ -46,7 +46,7 @@ typedef struct{
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
 void controlInitialize(void);
-float controlControl(controlModeEnum_t mode, float r, float y);
+float controlControl(controlModeEnum_t mode, uint16_t r, platCPU2ControlData_t *data);
 uint32_t controlSet(controlModeEnum_t mode, uint32_t *p);
 //===========================================================================
 #endif /* CONTROL_H_ */
