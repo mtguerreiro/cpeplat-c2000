@@ -34,7 +34,7 @@ typedef struct{
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
 void sfbInitialize(sfb_t *sfb, uint32_t *p);
-float sfbControl(void *sfb, uint16_t ref, platCPU2ControlData_t *data);
+float sfbControl(void *sfbt, uint16_t ref, platCPU2ControlData_t *data);
 //===========================================================================
 
 #endif /* CONTROL_SFB_H_ */

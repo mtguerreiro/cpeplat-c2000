@@ -20,6 +20,7 @@ typedef enum{
     PLAT_CPU2_CONTROL_MODE_OL,
     PLAT_CPU2_CONTROL_MODE_PID,
     PLAT_CPU2_CONTROL_MODE_SFB,
+//    PLAT_CPU2_CONTROL_MODE_DMPC,
     PLAT_CPU2_CONTROL_MODE_END
 }platCPU2ControlModeEnum_t;
 
@@ -120,6 +121,7 @@ typedef enum{
 #define PLAT_CPU2_LED                   34U
 #define PLAT_CPU2_GPIO_0                8U
 #define PLAT_CPU2_GPIO_1                9U
+#define PLAT_CPU2_GPIO_2                25U
 
 /* IPC flag for commands */
 #define PLAT_IPC_FLAG_CMD               0U

@@ -13,6 +13,7 @@
 #include "openloop.h"
 #include "pid.h"
 #include "sfb.h"
+#include "dmpc.h"
 //===========================================================================
 
 //===========================================================================
@@ -29,6 +30,7 @@ controlMode_t controlMode[CONTROL_MODE_END];
 openloop_t openloop;
 pid_t pid;
 sfb_t sfb;
+//dmpc_t dmpc;
 //===========================================================================
 
 //===========================================================================
@@ -45,6 +47,9 @@ void controlInitialize(void){
 
     controlMode[CONTROL_MODE_SFB].run = sfbControl;
     controlMode[CONTROL_MODE_SFB].controller = (void *)&sfb;
+
+//    controlMode[CONTROL_MODE_DMPC].run = dmpcControl;
+//    controlMode[CONTROL_MODE_DMPC].controller = (void *)&dmpc;
 }
 //---------------------------------------------------------------------------
 uint32_t controlSet(controlModeEnum_t mode, uint32_t *p){
@@ -72,6 +77,10 @@ uint32_t controlSet(controlModeEnum_t mode, uint32_t *p){
     else if( mode == CONTROL_MODE_SFB ){
         sfbInitialize(&sfb, p);
     }
+
+//    else if( mode == CONTROL_MODE_DMPC ){
+//        dmpcInitialize(&dmpc, p);
+//    }
 
     else{
         return 1;

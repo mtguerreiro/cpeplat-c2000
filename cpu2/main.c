@@ -413,13 +413,17 @@ static void mainInitializeEPWM(void){
     ClkCfgRegs.PERCLKDIVSEL.bit.EPWMCLKDIV = 1;
     EDIS;
 
+    EALLOW;
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 0;
+    EDIS;
+
     mainInitializeEPWM2();
     mainInitializeEPWM4();
 
-    // Sync ePWM
-    EALLOW;
-    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 1;
-    EDIS;
+//    // Sync ePWM
+//    EALLOW;
+//    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 1;
+//    EDIS;
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeEPWM2(void){
@@ -635,11 +639,18 @@ static void mainCommandPWMEnable(uint32_t data){
 
     // Start ePWM
     EALLOW;
+
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 0;
+
     EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
     //EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Count up
+    EPwm4Regs.TBCTR = 0;
 
     EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
     EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
+    EPwm2Regs.TBCTR = 0;
+
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 1;
     EDIS;
 }
 //-----------------------------------------------------------------------------
@@ -651,6 +662,9 @@ static void mainCommandPWMDisable(uint32_t data){
 
     // Stop ePWM
     EALLOW;
+
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 0;
+
     EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
     mainControl.u = 0;
     //EPwm4Regs.TBCTL.bit.CTRMODE = 3;             //
@@ -1040,6 +1054,8 @@ static __interrupt void mainADCAISR(void){
 
     float u;
 
+    GPIO_writePin(PLAT_CPU2_GPIO_2, 1);
+
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Clear ADC INT1 flag
     PieCtrlRegs.PIEACK.all = 0x0001;     // Acknowledge PIE group 1 to enable further interrupts
 
@@ -1077,6 +1093,8 @@ static __interrupt void mainADCAISR(void){
         *mainControl.buffer[2].p++ = (uint16_t)(data32 & 0xFF);
         *mainControl.buffer[2].p++ = (uint16_t)(data32 >> 16);
     }
+
+    GPIO_writePin(PLAT_CPU2_GPIO_2, 0);
 }
 //-----------------------------------------------------------------------------
 static __interrupt void mainADCPPBISR(void){

@@ -92,7 +92,7 @@ static void mainInitialize(void){
 static void mainInitializeCPU2(void){
 
     /* Tells CPU2 to boot from flash */
-    //Device_bootCPU2(C1C2_BROM_BOOTMODE_BOOT_FROM_FLASH);
+    Device_bootCPU2(C1C2_BROM_BOOTMODE_BOOT_FROM_FLASH);
 
     /* CPU2's peripherals initialization */
     mainInitializeCPU2GPIO();
@@ -133,6 +133,10 @@ static void mainInitializeCPU2GPIO(void){
     GPIO_setPadConfig(PLAT_CPU2_GPIO_1, GPIO_PIN_TYPE_STD);
     GPIO_setDirectionMode(PLAT_CPU2_GPIO_1, GPIO_DIR_MODE_OUT);
     GPIO_setMasterCore(PLAT_CPU2_GPIO_1, GPIO_CORE_CPU2);
+
+    GPIO_setPadConfig(PLAT_CPU2_GPIO_2, GPIO_PIN_TYPE_STD);
+    GPIO_setDirectionMode(PLAT_CPU2_GPIO_2, GPIO_DIR_MODE_OUT);
+    GPIO_setMasterCore(PLAT_CPU2_GPIO_2, GPIO_CORE_CPU2);
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeCPU2PWM(void){
