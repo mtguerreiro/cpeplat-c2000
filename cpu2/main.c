@@ -24,14 +24,17 @@
 #include "F2837xD_GlobalVariableDefs.c"
 
 #include "control.h"
+#include "dmpc.h"
 #include "observer.h"
 //=============================================================================
 
 //=============================================================================
 /*--------------------------------- Defines ---------------------------------*/
 //=============================================================================
-#define MAIN_CONFIG_EPWM2_PERIOD        (0x03E7>>1)
-#define MAIN_CONFIG_EPWM4_PERIOD        (0x03E7>>1)
+#define MAIN_CONFIG_EPWM2_PERIOD        (0x03E7 << 1)
+#define MAIN_CONFIG_EPWM4_PERIOD        (0x03E7 << 1)
+//#define MAIN_CONFIG_EPWM2_PERIOD        (0x03E7>>1)
+//#define MAIN_CONFIG_EPWM4_PERIOD        (0x03E7>>1)
 
 #define PLAT_CPU2_BUFFER_MAX            3
 
@@ -1078,21 +1081,24 @@ static __interrupt void mainADCAISR(void){
         *mainControl.buffer[0].p++ = mainControl.u;
     }
     if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
-        uint32_t data32;
-
-        data32 = *((uint32_t *)(&mainControl.observerData.states[0]));
-
-        *mainControl.buffer[1].p++ = (uint16_t)(data32 & 0xFF);
-        *mainControl.buffer[1].p++ = (uint16_t)(data32 >> 16);
+        *mainControl.buffer[1].p++ = controlDMPCIters();
     }
-    if( mainControl.buffer[2].p != mainControl.buffer[2].pEnd ){
-        uint32_t data32;
-
-        data32 = *((uint32_t *)(&mainControl.observerData.states[1]));
-
-        *mainControl.buffer[2].p++ = (uint16_t)(data32 & 0xFF);
-        *mainControl.buffer[2].p++ = (uint16_t)(data32 >> 16);
-    }
+//    if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
+//        uint32_t data32;
+//
+//        data32 = *((uint32_t *)(&mainControl.observerData.states[0]));
+//
+//        *mainControl.buffer[1].p++ = (uint16_t)(data32 & 0xFF);
+//        *mainControl.buffer[1].p++ = (uint16_t)(data32 >> 16);
+//    }
+//    if( mainControl.buffer[2].p != mainControl.buffer[2].pEnd ){
+//        uint32_t data32;
+//
+//        data32 = *((uint32_t *)(&mainControl.observerData.states[1]));
+//
+//        *mainControl.buffer[2].p++ = (uint16_t)(data32 & 0xFF);
+//        *mainControl.buffer[2].p++ = (uint16_t)(data32 >> 16);
+//    }
 
     GPIO_writePin(PLAT_CPU2_GPIO_2, 0);
 }

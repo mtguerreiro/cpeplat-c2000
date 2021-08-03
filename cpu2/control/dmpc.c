@@ -44,6 +44,7 @@ float dmpcControl(void *dmpct, uint16_t ref, platCPU2ControlData_t *data){
 
     dmpc->x[0] = ((float)(*data->adc[4])) * ((float)0.022165868319714472) + ((float)-50.0);
     dmpc->x[1] =  ((float)(*data->adc[3])) * ((float)0.007326007326007326);
+    dmpc->u_1 = ((float)(*data->u)) * ((float)0.0005005005005005005);
 
     dmpc->du = dmpcBuckOpt(dmpc->x, dmpc->x_1, r, dmpc->u_1, &dmpc->iters);
 
