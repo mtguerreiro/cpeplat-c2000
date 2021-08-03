@@ -531,6 +531,8 @@ static void mainInitializeControlStructure(void){
     controlInitialize();
     observerInitialize();
 
+    mainControl.controlData.observer = &mainControl.observerData;
+
     mainControl.controlMode = 0;
 
     mainControl.ref = 0;
@@ -1083,6 +1085,15 @@ static __interrupt void mainADCAISR(void){
     if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
         *mainControl.buffer[1].p++ = controlDMPCIters();
     }
+    if( mainControl.buffer[2].p != mainControl.buffer[2].pEnd ){
+        uint32_t data32;
+
+        data32 = *((uint32_t *)(&mainControl.observerData.states[0]));
+
+        *mainControl.buffer[2].p++ = (uint16_t)(data32 & 0xFF);
+        *mainControl.buffer[2].p++ = (uint16_t)(data32 >> 16);
+    }
+
 //    if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
 //        uint32_t data32;
 //

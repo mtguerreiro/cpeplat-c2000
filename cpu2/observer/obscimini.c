@@ -44,7 +44,7 @@ void obsciminiObserve(void *ciminit, platCPU2ObserverData_t *data){
 
     vc = ((float)(*data->adc[3])) * ((float)0.007326007326007326);
     vin = ((float)(*data->adc[1])) * ((float)0.007326007326007326);
-    u = ((float)(*data->u)) * ((float)0.002004008016032064);
+    u = ((float)(*data->u)) * ((float)0.0005005005005005005);
 
     cimini = (obscimini_t *)ciminit;
 

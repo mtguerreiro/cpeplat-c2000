@@ -24,18 +24,20 @@ typedef enum{
     PLAT_CPU2_CONTROL_MODE_END
 }platCPU2ControlModeEnum_t;
 
-/* CPU2 control data */
-typedef struct{
-    uint16_t *adc[6];
-    uint16_t *u;
-}platCPU2ControlData_t;
-
 /* CPU2 observer data */
 typedef struct{
     uint16_t *adc[6];
     uint16_t *u;
     float states[2];
 }platCPU2ObserverData_t;
+
+/* CPU2 control data */
+typedef struct{
+    uint16_t *adc[6];
+    uint16_t *u;
+    platCPU2ObserverData_t *observer;
+}platCPU2ControlData_t;
+
 
 /* CPU2 observer modes */
 typedef enum{
