@@ -1,0 +1,145 @@
+/*
+ * Academic License - for use in teaching, academic research, and meeting
+ * course requirements at degree granting institutions only.  Not for
+ * government, commercial, or other organizational use.
+ *
+ * File: ExternalControl.h
+ *
+ * Code generated for Simulink model 'ExternalControl'.
+ *
+ * Model version                  : 1.9
+ * Simulink Coder version         : 9.4 (R2020b) 29-Jul-2020
+ * C/C++ source code generated on : Wed Aug  4 13:47:55 2021
+ *
+ * Target selection: ert.tlc
+ * Embedded hardware selection: Texas Instruments->C2000
+ * Code generation objectives:
+ *    1. Execution efficiency
+ *    2. RAM efficiency
+ * Validation result: Not run
+ */
+
+#ifndef RTW_HEADER_ExternalControl_h_
+#define RTW_HEADER_ExternalControl_h_
+#include "rtwtypes.h"
+#ifndef ExternalControl_COMMON_INCLUDES_
+#define ExternalControl_COMMON_INCLUDES_
+#include "rtwtypes.h"
+#endif                                 /* ExternalControl_COMMON_INCLUDES_ */
+
+/* Model Code Variants */
+
+/* Macros for accessing real-time model data structure */
+
+/* Block signals and states (default storage) for system '<Root>' */
+typedef struct {
+  real32_T Delay_DSTATE;               /* '<Root>/Delay' */
+  real32_T Delay1_DSTATE;              /* '<Root>/Delay1' */
+  real32_T Delay3_DSTATE;              /* '<Root>/Delay3' */
+  real32_T Delay2_DSTATE;              /* '<Root>/Delay2' */
+} DW;
+
+/* External inputs (root inport signals with default storage) */
+typedef struct {
+  real32_T V_ref;                      /* '<Root>/V_ref' */
+  real32_T Vout;                       /* '<Root>/Vout' */
+  real32_T Vin;                        /* '<Root>/Vin' */
+  real32_T Vin_buck;                   /* '<Root>/Vin_buck' */
+  real32_T IL;                         /* '<Root>/IL' */
+  real32_T IL_avg;                     /* '<Root>/IL_avg' */
+  real32_T Vout_buck;                  /* '<Root>/Vout_buck' */
+} ExtU;
+
+/* External outputs (root outports fed by signals with default storage) */
+typedef struct {
+  real32_T ControlSignal;              /* '<Root>/ControlSignal' */
+} ExtY;
+
+/* Parameters (default storage) */
+struct P_ {
+  real32_T b0;                         /* Variable: b0
+                                        * Referenced by: '<Root>/Gain_b0'
+                                        */
+  real32_T b1;                         /* Variable: b1
+                                        * Referenced by: '<Root>/Gain_b1'
+                                        */
+  real32_T b2;                         /* Variable: b2
+                                        * Referenced by: '<Root>/Gain_b2'
+                                        */
+  real32_T Delay_InitialCondition; /* Computed Parameter: Delay_InitialCondition
+                                    * Referenced by: '<Root>/Delay'
+                                    */
+  real32_T Delay1_InitialCondition;
+                                  /* Computed Parameter: Delay1_InitialCondition
+                                   * Referenced by: '<Root>/Delay1'
+                                   */
+  real32_T Delay3_InitialCondition;
+                                  /* Computed Parameter: Delay3_InitialCondition
+                                   * Referenced by: '<Root>/Delay3'
+                                   */
+  real32_T Gain_a2_Gain;               /* Computed Parameter: Gain_a2_Gain
+                                        * Referenced by: '<Root>/Gain_a2'
+                                        */
+  real32_T Delay2_InitialCondition;
+                                  /* Computed Parameter: Delay2_InitialCondition
+                                   * Referenced by: '<Root>/Delay2'
+                                   */
+  real32_T Gain_a1_Gain;               /* Computed Parameter: Gain_a1_Gain
+                                        * Referenced by: '<Root>/Gain_a1'
+                                        */
+  real32_T Saturation1_UpperSat;     /* Computed Parameter: Saturation1_UpperSat
+                                      * Referenced by: '<Root>/Saturation1'
+                                      */
+  real32_T Saturation1_LowerSat;     /* Computed Parameter: Saturation1_LowerSat
+                                      * Referenced by: '<Root>/Saturation1'
+                                      */
+};
+
+/* Parameters (default storage) */
+typedef struct P_ P;
+
+/* Block parameters (default storage) */
+extern P rtP;
+
+/* Block signals and states (default storage) */
+extern DW rtDW;
+
+/* External inputs (root inport signals with default storage) */
+extern ExtU rtU;
+
+/* External outputs (root outports fed by signals with default storage) */
+extern ExtY rtY;
+
+/* Model entry point functions */
+extern void ExternalControl_initialize(void);
+extern void ExternalControl_step(void);
+
+/*-
+ * These blocks were eliminated from the model due to optimizations:
+ *
+ * Block '<Root>/Scope' : Unused code path elimination
+ */
+
+/*-
+ * The generated code includes comments that allow you to trace directly
+ * back to the appropriate location in the model.  The basic format
+ * is <system>/block_name, where system is the system number (uniquely
+ * assigned by Simulink) and block_name is the name of the block.
+ *
+ * Use the MATLAB hilite_system command to trace the generated code back
+ * to the model.  For example,
+ *
+ * hilite_system('<S3>')    - opens system 3
+ * hilite_system('<S3>/Kp') - opens and selects block Kp which resides in S3
+ *
+ * Here is the system hierarchy for this model
+ *
+ * '<Root>' : 'ExternalControl'
+ */
+#endif                                 /* RTW_HEADER_ExternalControl_h_ */
+
+/*
+ * File trailer for generated code.
+ *
+ * [EOF]
+ */
