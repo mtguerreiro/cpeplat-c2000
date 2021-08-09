@@ -7,9 +7,9 @@
  *
  * Code generated for Simulink model 'ExternalControl'.
  *
- * Model version                  : 1.9
+ * Model version                  : 1.10
  * Simulink Coder version         : 9.4 (R2020b) 29-Jul-2020
- * C/C++ source code generated on : Wed Aug  4 13:47:55 2021
+ * C/C++ source code generated on : Mon Aug  9 15:32:52 2021
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: Texas Instruments->C2000
@@ -23,58 +23,43 @@
 
 /* Block parameters (default storage) */
 P rtP = {
-  /* Variable: b0
-   * Referenced by: '<Root>/Gain_b0'
+  /* Variable: P_in
+   * Referenced by: '<Root>/Gain3'
    */
-  1.57026279F,
+  0.05F,
+
+  /* Variable: b0
+   * Referenced by: '<Root>/Gain'
+   */
+  1.4137F,
 
   /* Variable: b1
-   * Referenced by: '<Root>/Gain_b1'
+   * Referenced by: '<Root>/Gain2'
    */
-  -3.10171938F,
-
-  /* Variable: b2
-   * Referenced by: '<Root>/Gain_b2'
-   */
-  1.53209949F,
+  -1.3862F,
 
   /* Computed Parameter: Delay_InitialCondition
    * Referenced by: '<Root>/Delay'
    */
   0.0F,
 
-  /* Computed Parameter: Delay1_InitialCondition
-   * Referenced by: '<Root>/Delay1'
-   */
-  0.0F,
-
-  /* Computed Parameter: Delay3_InitialCondition
-   * Referenced by: '<Root>/Delay3'
-   */
-  0.0F,
-
-  /* Computed Parameter: Gain_a2_Gain
-   * Referenced by: '<Root>/Gain_a2'
-   */
-  -0.632653058F,
-
   /* Computed Parameter: Delay2_InitialCondition
    * Referenced by: '<Root>/Delay2'
    */
   0.0F,
 
-  /* Computed Parameter: Gain_a1_Gain
-   * Referenced by: '<Root>/Gain_a1'
-   */
-  1.63265312F,
-
-  /* Computed Parameter: Saturation1_UpperSat
-   * Referenced by: '<Root>/Saturation1'
+  /* Computed Parameter: Gain1_Gain
+   * Referenced by: '<Root>/Gain1'
    */
   1.0F,
 
-  /* Computed Parameter: Saturation1_LowerSat
-   * Referenced by: '<Root>/Saturation1'
+  /* Computed Parameter: Saturation_UpperSat
+   * Referenced by: '<Root>/Saturation'
+   */
+  1.0F,
+
+  /* Computed Parameter: Saturation_LowerSat
+   * Referenced by: '<Root>/Saturation'
    */
   0.0F
 };

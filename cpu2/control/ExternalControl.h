@@ -7,9 +7,9 @@
  *
  * Code generated for Simulink model 'ExternalControl'.
  *
- * Model version                  : 1.9
+ * Model version                  : 1.10
  * Simulink Coder version         : 9.4 (R2020b) 29-Jul-2020
- * C/C++ source code generated on : Wed Aug  4 13:47:55 2021
+ * C/C++ source code generated on : Mon Aug  9 15:32:52 2021
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: Texas Instruments->C2000
@@ -34,8 +34,6 @@
 /* Block signals and states (default storage) for system '<Root>' */
 typedef struct {
   real32_T Delay_DSTATE;               /* '<Root>/Delay' */
-  real32_T Delay1_DSTATE;              /* '<Root>/Delay1' */
-  real32_T Delay3_DSTATE;              /* '<Root>/Delay3' */
   real32_T Delay2_DSTATE;              /* '<Root>/Delay2' */
 } DW;
 
@@ -57,42 +55,31 @@ typedef struct {
 
 /* Parameters (default storage) */
 struct P_ {
+  real32_T P_in;                       /* Variable: P_in
+                                        * Referenced by: '<Root>/Gain3'
+                                        */
   real32_T b0;                         /* Variable: b0
-                                        * Referenced by: '<Root>/Gain_b0'
+                                        * Referenced by: '<Root>/Gain'
                                         */
   real32_T b1;                         /* Variable: b1
-                                        * Referenced by: '<Root>/Gain_b1'
-                                        */
-  real32_T b2;                         /* Variable: b2
-                                        * Referenced by: '<Root>/Gain_b2'
+                                        * Referenced by: '<Root>/Gain2'
                                         */
   real32_T Delay_InitialCondition; /* Computed Parameter: Delay_InitialCondition
                                     * Referenced by: '<Root>/Delay'
                                     */
-  real32_T Delay1_InitialCondition;
-                                  /* Computed Parameter: Delay1_InitialCondition
-                                   * Referenced by: '<Root>/Delay1'
-                                   */
-  real32_T Delay3_InitialCondition;
-                                  /* Computed Parameter: Delay3_InitialCondition
-                                   * Referenced by: '<Root>/Delay3'
-                                   */
-  real32_T Gain_a2_Gain;               /* Computed Parameter: Gain_a2_Gain
-                                        * Referenced by: '<Root>/Gain_a2'
-                                        */
   real32_T Delay2_InitialCondition;
                                   /* Computed Parameter: Delay2_InitialCondition
                                    * Referenced by: '<Root>/Delay2'
                                    */
-  real32_T Gain_a1_Gain;               /* Computed Parameter: Gain_a1_Gain
-                                        * Referenced by: '<Root>/Gain_a1'
+  real32_T Gain1_Gain;                 /* Computed Parameter: Gain1_Gain
+                                        * Referenced by: '<Root>/Gain1'
                                         */
-  real32_T Saturation1_UpperSat;     /* Computed Parameter: Saturation1_UpperSat
-                                      * Referenced by: '<Root>/Saturation1'
-                                      */
-  real32_T Saturation1_LowerSat;     /* Computed Parameter: Saturation1_LowerSat
-                                      * Referenced by: '<Root>/Saturation1'
-                                      */
+  real32_T Saturation_UpperSat;       /* Computed Parameter: Saturation_UpperSat
+                                       * Referenced by: '<Root>/Saturation'
+                                       */
+  real32_T Saturation_LowerSat;       /* Computed Parameter: Saturation_LowerSat
+                                       * Referenced by: '<Root>/Saturation'
+                                       */
 };
 
 /* Parameters (default storage) */
@@ -113,12 +100,6 @@ extern ExtY rtY;
 /* Model entry point functions */
 extern void ExternalControl_initialize(void);
 extern void ExternalControl_step(void);
-
-/*-
- * These blocks were eliminated from the model due to optimizations:
- *
- * Block '<Root>/Scope' : Unused code path elimination
- */
 
 /*-
  * The generated code includes comments that allow you to trace directly

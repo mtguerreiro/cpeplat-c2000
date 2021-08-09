@@ -7,9 +7,9 @@
  *
  * Code generated for Simulink model 'ExternalControl'.
  *
- * Model version                  : 1.9
+ * Model version                  : 1.10
  * Simulink Coder version         : 9.4 (R2020b) 29-Jul-2020
- * C/C++ source code generated on : Wed Aug  4 13:47:55 2021
+ * C/C++ source code generated on : Mon Aug  9 15:32:52 2021
  *
  * Target selection: ert.tlc
  * Embedded hardware selection: Texas Instruments->C2000
