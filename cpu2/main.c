@@ -433,6 +433,9 @@ static void mainInitializeEPWM2(void){
     EPwm2Regs.ETSEL.bit.SOCASEL = 2;            // Select SOCA on period match
     EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
     EPwm2Regs.ETPS.bit.SOCAPRD = 1;             // Generate pulse on 1st event
+
+    //Sets output to high for incoming trip
+    EPwm2Regs.TZCTL.bit.TZA = 2;                // EPWM2A forces to low
     EDIS;
 }
 //-----------------------------------------------------------------------------
@@ -474,6 +477,10 @@ static void mainInitializeEPWM4(void){
      EPwm4Regs.DBCTL.bit.IN_MODE = 0;
      EPwm4Regs.DBRED.bit.DBRED = 5;
      EPwm4Regs.DBFED.bit.DBFED = 5;
+
+     //Sets output to high for incoming trip
+     EPwm4Regs.TZCTL.bit.TZA = 1; // EPWM4A forces to high
+     EPwm4Regs.TZCTL.bit.TZB = 1; // EPWM4B forces to high
 
      /* Enables counter */
      EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Freeze counter
@@ -651,6 +658,9 @@ static void mainCommandPWMDisable(uint32_t data){
 
     // Stop ePWM
     EALLOW;
+
+    //EPwm2Regs.TZFRC.bit.OST = 1;
+    //EPwm4Regs.TZFRC.bit.OST = 1;   // inductor is disconnected from source and load, now connected to GND
     EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
     mainControl.u = 0;
     //EPwm4Regs.TBCTL.bit.CTRMODE = 3;             //
