@@ -480,7 +480,7 @@ static void mainInitializeEPWM4(void){
 
      //Sets output to high for incoming trip
      EPwm4Regs.TZCTL.bit.TZA = 1; // EPWM4A forces to high
-     EPwm4Regs.TZCTL.bit.TZB = 1; // EPWM4B forces to high
+     EPwm4Regs.TZCTL.bit.TZB = 2; // EPWM4B forces to low
 
      /* Enables counter */
      EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Freeze counter
@@ -642,9 +642,11 @@ static void mainCommandPWMEnable(uint32_t data){
 
     // Start ePWM
     EALLOW;
-    EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
+    EPwm4Regs.TZCLR.bit.OST = 1;                    // clear trip zone flags
+    EPwm4Regs.CMPA.bit.CMPA = 0;                    // Set compare A value
     //EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Count up
 
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC= 1;
     EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
     EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
     EDIS;
@@ -659,14 +661,15 @@ static void mainCommandPWMDisable(uint32_t data){
     // Stop ePWM
     EALLOW;
 
-    //EPwm2Regs.TZFRC.bit.OST = 1;
-    //EPwm4Regs.TZFRC.bit.OST = 1;   // inductor is disconnected from source and load, now connected to GND
-    EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
-    mainControl.u = 0;
+    //EPwm2Regs.TZFRC.bit.OST = 1;         //Trigger Safety Status
+    EPwm4Regs.TZFRC.bit.OST = 1;
+    //EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
+    //mainControl.u = 0;
     //EPwm4Regs.TBCTL.bit.CTRMODE = 3;             //
 
     EPwm2Regs.ETSEL.bit.SOCAEN = 0;             // Disable SOCA
     EPwm2Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
+    EPwm2Regs.TBCTR = 0x0000;                   // Clear Counter
     EDIS;
 }
 //-----------------------------------------------------------------------------
