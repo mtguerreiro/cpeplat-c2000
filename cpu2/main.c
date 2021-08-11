@@ -1053,6 +1053,8 @@ static __interrupt void  mainIPC0ISR(void){
 //-----------------------------------------------------------------------------
 static __interrupt void mainADCAISR(void){
 
+    GPIO_togglePin(PLAT_CPU2_GPIO_2);                       //Synchronisation Test
+
     float u;
 
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Clear ADC INT1 flag
