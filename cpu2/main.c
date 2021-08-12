@@ -267,7 +267,7 @@ static void mainInitializeADC(void){
     AdcaRegs.ADCSOC2CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
 
     //Flag ADC-A End of Conversion
-    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 0;      // End of SOC0 will set INT1 flag
+    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 2;      // End of SOC0 will set INT1 flag
     AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;        // Enable INT1 flag
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Make sure INT1 flag is cleared
 
@@ -286,7 +286,7 @@ static void mainInitializeADC(void){
     AdcbRegs.ADCSOC1CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
 
     //Flag ADC-B Limit
-    AdcbRegs.ADCINTSEL1N2.bit.INT2SEL = 0;      // End of SOC0 will set INT2 flag
+    AdcbRegs.ADCINTSEL1N2.bit.INT2SEL = 1;      // End of SOC0 will set INT2 flag
     AdcbRegs.ADCINTSEL1N2.bit.INT2E = 1;        // Enable INT2 flag
     AdcbRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Make sure INT2 flag is cleared
 
@@ -295,6 +295,10 @@ static void mainInitializeADC(void){
     AdccRegs.ADCSOC0CTL.bit.ACQPS = 14;         // Sample window is 100 SYSCLK cycles
     AdccRegs.ADCSOC0CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
 
+    //Flag ADC-C Limit
+    AdccRegs.ADCINTSEL1N2.bit.INT2SEL = 0;      // End of SOC0 will set INT2 flag
+    AdccRegs.ADCINTSEL1N2.bit.INT2E = 1;        // Enable INT2 flag
+    AdccRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Make sure INT2 flag is cleared
     EDIS;
 }
 //-----------------------------------------------------------------------------
