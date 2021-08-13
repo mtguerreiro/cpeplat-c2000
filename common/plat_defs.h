@@ -121,7 +121,6 @@ typedef enum{
 #define PLAT_CPU2_LED                   34U
 #define PLAT_CPU2_GPIO_0                8U
 #define PLAT_CPU2_GPIO_1                9U
-#define PLAT_CPU2_GPIO_2                25U
 
 /* IPC flag for commands */
 #define PLAT_IPC_FLAG_CMD               0U
