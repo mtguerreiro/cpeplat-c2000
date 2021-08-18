@@ -109,6 +109,9 @@ static void mainInitializeEPWM(void);
 static void mainInitializeEPWM2(void);
 static void mainInitializeEPWM4(void);
 
+static void mainPWMEnable(void);
+static void mainPWMDisable(void);
+
 static void mainInitializeControlStructure(void);
 
 static uint32_t mainBufferUpdate(void);
@@ -504,6 +507,38 @@ static void mainInitializeEPWM4(void){
      EDIS;
 }
 //-----------------------------------------------------------------------------
+static void mainPWMEnable(void){
+
+    // Start ePWM
+    EALLOW;
+    EPwm4Regs.TZCLR.bit.OST = 1;                    // clear trip zone flags
+    EPwm4Regs.CMPA.bit.CMPA = 0;                    // Set compare A value
+
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC= 1;        // Turn on all clocks at the same time
+    EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
+    EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
+
+    EPwm4Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
+    EDIS;
+}
+//-----------------------------------------------------------------------------
+static void mainPWMDisable(void){
+
+    // Stop ePWM
+    EALLOW;
+
+    EPwm4Regs.TZFRC.bit.OST = 1;                //Trigger Safety Status
+
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC= 0;        // Turn off all clocks
+    EPwm2Regs.ETSEL.bit.SOCAEN = 0;             // Disable SOCA
+    EPwm2Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
+    EPwm2Regs.TBCTR = 0x0000;                   // Clear Counter
+
+    EPwm4Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
+    EPwm4Regs.TBCTR = 0x0000;                   // Clear Counter
+    EDIS;
+}
+//-----------------------------------------------------------------------------
 static void mainInitializeBuffer(void){
 
     uint32_t k;
@@ -668,18 +703,7 @@ static void mainCommandPWMEnable(uint32_t data){
 
     mainBufferUpdate();
 
-    // Start ePWM
-    EALLOW;
-    EPwm4Regs.TZCLR.bit.OST = 1;                    // clear trip zone flags
-    EPwm4Regs.CMPA.bit.CMPA = 0;                    // Set compare A value
-
-
-    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC= 1;        // Turn on all clocks at the same time
-    EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
-    EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
-
-    EPwm4Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
-    EDIS;
+    mainPWMEnable();
 }
 //-----------------------------------------------------------------------------
 static void mainCommandPWMDisable(uint32_t data){
@@ -688,19 +712,7 @@ static void mainCommandPWMDisable(uint32_t data){
     HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
-    // Stop ePWM
-    EALLOW;
-
-    EPwm4Regs.TZFRC.bit.OST = 1;                //Trigger Safety Status
-
-    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC= 0;        // Turn off all clocks
-    EPwm2Regs.ETSEL.bit.SOCAEN = 0;             // Disable SOCA
-    EPwm2Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
-    EPwm2Regs.TBCTR = 0x0000;                   // Clear Counter
-
-    EPwm4Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
-    EPwm4Regs.TBCTR = 0x0000;                   // Clear Counter
-    EDIS;
+    mainPWMDisable();
 }
 //-----------------------------------------------------------------------------
 static void mainCommandCPU2BufferSet(uint32_t data){
@@ -1159,68 +1171,44 @@ static __interrupt void mainADCAISR(void){
 static __interrupt void mainADCPPBISR(void){
 
     if( AdcaRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCA_PPB1_TRIP;
         AdcaRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
     }
 
     if( AdcaRegs.ADCEVTSTAT.bit.PPB2TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCA_PPB2_TRIP;
         AdcaRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
     }
 
     if( AdcaRegs.ADCEVTSTAT.bit.PPB3TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCA_PPB3_TRIP;
         AdcaRegs.ADCEVTCLR.bit.PPB3TRIPHI = 1;
     }
 
     if( AdcbRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCB_PPB1_TRIP;
         AdcbRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
     }
 
     if( AdcbRegs.ADCEVTSTAT.bit.PPB2TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCB_PPB2_TRIP;
         AdcbRegs.ADCEVTCLR.bit.PPB2TRIPHI = 1;
     }
 
     if( AdccRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCC_PPB1_TRIP;
         AdccRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
     }
 
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCA INT2 flag
     AdcbRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCB INT2 flag
-    AdccRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCB INT2 flag
+    AdccRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCC INT2 flag
     PieCtrlRegs.PIEACK.all = 0x0200;
 }
 //-----------------------------------------------------------------------------
