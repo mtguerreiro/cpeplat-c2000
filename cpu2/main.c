@@ -57,6 +57,13 @@ typedef struct{
 }mainBuffer_t;
 //---------------------------------------------------------------------------
 typedef struct{
+    uint32_t i;
+    uint32_t start;
+    uint32_t end;
+    uint32_t gpio;
+}mainEvent_t;
+//---------------------------------------------------------------------------
+typedef struct{
 
     uint32_t blink;
     uint32_t status;
@@ -73,6 +80,9 @@ typedef struct{
 
     uint32_t observerMode;
     platCPU2ObserverData_t observerData;
+
+    uint32_t eventMode;
+    mainEvent_t event;
 
 }mainControl_t;
 //---------------------------------------------------------------------------
@@ -132,6 +142,8 @@ static void mainCommandCPU2TripSet(uint32_t data);
 static void mainCommandCPU2TripEnable(uint32_t data);
 static void mainCommandCPU2TripDisable(uint32_t data);
 static void mainCommandCPU2TripRead(uint32_t data);
+
+static void mainCommandCPU2EventSet(uint32_t data);
 
 static __interrupt void mainIPC0ISR(void);
 
@@ -532,15 +544,17 @@ static uint32_t mainBufferUpdate(void){
 //-----------------------------------------------------------------------------
 static void mainInitializeControlStructure(void){
 
+    /* Initializes controllers and observers */
     controlInitialize();
     observerInitialize();
 
-    mainControl.controlMode = 0;
-
-    mainControl.ref = 0;
+    /* Clears status and initializes u and ref to zero */
     mainControl.status = 0;
-
+    mainControl.ref = 0;
     mainControl.u = 0;
+
+    /* Initializes control data */
+    mainControl.controlMode = 0;
 
     mainControl.controlData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
     mainControl.controlData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
@@ -551,6 +565,7 @@ static void mainInitializeControlStructure(void){
 
     mainControl.controlData.u = &mainControl.u;
 
+    /* Initializes observer data */
     mainControl.observerData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
     mainControl.observerData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
     mainControl.observerData.adc[2] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
@@ -559,6 +574,13 @@ static void mainInitializeControlStructure(void){
     mainControl.observerData.adc[5] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
 
     mainControl.observerData.u = &mainControl.u;
+
+    /* Initializes event data */
+    mainControl.eventMode = 0;
+    mainControl.event.i = 0;
+    mainControl.event.end = 0;
+    mainControl.event.start = 0;
+    mainControl.event.gpio = 0xFFFFFFFF;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandInitializeHandlers(void){
@@ -591,6 +613,8 @@ static void mainCommandInitializeHandlers(void){
     mainControl.handle[PLAT_CMD_CPU2_TRIP_ENABLE] = mainCommandCPU2TripEnable;
     mainControl.handle[PLAT_CMD_CPU2_TRIP_DISABLE] = mainCommandCPU2TripDisable;
     mainControl.handle[PLAT_CMD_CPU2_TRIP_READ] = mainCommandCPU2TripRead;
+
+    mainControl.handle[PLAT_CMD_CPU2_EVENT_SET] = mainCommandCPU2EventSet;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandStatus(uint32_t data){
@@ -1032,6 +1056,24 @@ static void mainCommandCPU2TripRead(uint32_t data){
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
+static void mainCommandCPU2EventSet(uint32_t data){
+
+    uint32_t *p;
+
+    p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
+
+    mainControl.event.gpio = *p++;
+    mainControl.event.start = *p++;
+    mainControl.event.end = *p++;
+
+    mainControl.event.i = 0;
+    mainControl.eventMode = 1;
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
 //=============================================================================
 
 //=============================================================================
@@ -1059,15 +1101,29 @@ static __interrupt void mainADCAISR(void){
 
     float u;
 
-    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Clear ADC INT1 flag
-    PieCtrlRegs.PIEACK.all = 0x0001;     // Acknowledge PIE group 1 to enable further interrupts
+    /* Clears ADC INT1 flags and acks PIE group 1 for further interrupts */
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+    PieCtrlRegs.PIEACK.all = 0x0001;
 
+    /* Checks for event generation */
+    if( mainControl.eventMode != 0 ){
+        if( (mainControl.event.i > mainControl.event.start) && (mainControl.event.i < mainControl.event.end) ){
+            GPIO_writePin(mainControl.event.gpio, 1);
+        }
+        if( mainControl.event.i > mainControl.event.end ){
+            GPIO_writePin(mainControl.event.gpio, 0);
+            mainControl.eventMode = 0;
+        }
+        mainControl.event.i++;
+    }
+
+    /* Executes observer before controller, if enabled */
     if( mainControl.observerMode != PLAT_CPU2_OBSERVER_MODE_NONE ){
         observerObserve((observerModeEnum_t)mainControl.observerMode, \
                         &mainControl.observerData);
     }
 
-
+    /* Executes controller, if enabled */
     if( mainControl.controlMode != PLAT_CPU2_CONTROL_MODE_NONE ){
         u = controlControl((controlModeEnum_t)mainControl.controlMode,\
                            mainControl.ref, &mainControl.controlData);
@@ -1075,8 +1131,10 @@ static __interrupt void mainADCAISR(void){
         mainControl.u = (uint16_t)u;
     }
 
+    /* Updates PWM */
     EPwm4Regs.CMPA.bit.CMPA = mainControl.u;
 
+    /* Saves relevant data to buffers */
     if( mainControl.buffer[0].p != mainControl.buffer[0].pEnd ){
         *mainControl.buffer[0].p++ = mainControl.u;
     }

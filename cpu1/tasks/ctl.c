@@ -90,6 +90,8 @@ static uint32_t ctlCommandCPU2TripEnable(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2TripDisable(serialDataExchange_t *data);
 static uint32_t ctlCommandCPU2TripRead(serialDataExchange_t *data);
 
+static uint32_t ctlCommandCPU2EventSet(serialDataExchange_t *data);
+
 static __interrupt void ctlADCISR(void);
 //=============================================================================
 
@@ -146,6 +148,8 @@ static void ctlInitialize(void){
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_TRIP_ENABLE, ctlCommandCPU2TripEnable);
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_TRIP_DISABLE, ctlCommandCPU2TripDisable);
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_TRIP_READ, ctlCommandCPU2TripRead);
+
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_EVENT_SET, ctlCommandCPU2EventSet);
 
     /*
      * Enable ADC ISR. We don't want this interrupt to go through the
@@ -869,6 +873,54 @@ static uint32_t ctlCommandCPU2TripRead(serialDataExchange_t *data){
     return 1;
 }
 //-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2EventSet(serialDataExchange_t *data){
+
+    uint32_t k, size, cpu2Data, status;
+    uint32_t *p;
+
+    /* Gets data size without accounting for mode byte */
+    size = data->size;
+
+    /* Checks if data size exceeds buffer size */
+    if( size > PLAT_CPU1_CPU2_DATA_RAM_SIZE ){
+        data->buffer[0] = PLAT_CMD_CPU1_EVENT_SET_ERR_RAM_BUFFER;
+        data->size = 1;
+        data->bufferMode = 0;
+        return 1;
+    }
+
+    /* Copies event data to CPU1->CPU2 memory */
+    k = 0;
+    p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
+    while( k < size ){
+        *p = 0;
+        *p |= ((uint32_t)data->buffer[k++]) << 24;
+        *p |= ((uint32_t)data->buffer[k++]) << 16;
+        *p |= ((uint32_t)data->buffer[k++]) << 8;
+        *p |= ((uint32_t)data->buffer[k++]);
+        p++;
+    }
+
+    /* Sends command to CPU 2 */
+    ctlIPCCommand(PLAT_CMD_CPU2_EVENT_SET, 0);
+
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &cpu2Data) != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+        data->size = 1;
+    }
+    else{
+        data->buffer[0] = 0;
+        data->buffer[1] = (uint8_t)(cpu2Data >> 24);
+        data->buffer[2] = (uint8_t)(cpu2Data >> 16);
+        data->buffer[3] = (uint8_t)(cpu2Data >> 8);
+        data->buffer[4] = (uint8_t)(cpu2Data);
+        data->size = 5;
+    }
+    data->bufferMode = 0;
+
+    return 1;
+}
+//-----------------------------------------------------------------------------
 //=============================================================================
 
 
@@ -910,8 +962,6 @@ static __interrupt void ctlADCISR(void){
         ctlADCBuffer[5].buffer[ctlADCBuffer[5].i] = ADC_readResult(ADCCRESULT_BASE, (ADC_SOCNumber)0);
         ctlADCBuffer[5].i++;
     }
-
-
 }
 //-----------------------------------------------------------------------------
 //=============================================================================
