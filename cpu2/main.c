@@ -34,8 +34,6 @@
 #define MAIN_CONFIG_EPWM2_PERIOD        PLAT_CONFIG_EPWM2_PERIOD
 #define MAIN_CONFIG_EPWM4_PERIOD        PLAT_CONFIG_EPWM4_PERIOD
 
-#define PLAT_CPU2_BUFFER_MAX            3
-
 #define MAIN_STATUS_ADCA_PPB1_TRIP      (1 << 0)
 #define MAIN_STATUS_ADCA_PPB2_TRIP      (1 << 1)
 #define MAIN_STATUS_ADCA_PPB3_TRIP      (1 << 2)
@@ -1158,9 +1156,11 @@ static __interrupt void mainADCAISR(void){
     if( mainControl.buffer[0].p != mainControl.buffer[0].pEnd ){
         *mainControl.buffer[0].p++ = mainControl.u;
     }
+
     if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
         *mainControl.buffer[1].p++ = controlDMPCIters();
     }
+
     if( mainControl.buffer[2].p != mainControl.buffer[2].pEnd ){
         uint32_t data32;
 
@@ -1168,6 +1168,15 @@ static __interrupt void mainADCAISR(void){
 
         *mainControl.buffer[2].p++ = (uint16_t)(data32 & 0xFF);
         *mainControl.buffer[2].p++ = (uint16_t)(data32 >> 16);
+    }
+
+    if( mainControl.buffer[3].p != mainControl.buffer[3].pEnd ){
+        uint32_t data32;
+
+        data32 = *((uint32_t *)(&mainControl.observerData.states[1]));
+
+        *mainControl.buffer[3].p++ = (uint16_t)(data32 & 0xFF);
+        *mainControl.buffer[3].p++ = (uint16_t)(data32 >> 16);
     }
 
 //    if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
