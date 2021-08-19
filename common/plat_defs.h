@@ -154,6 +154,19 @@ typedef enum{
 #define PLAT_CPU2_BUFFER_RAM_ADD        0x0001A000
 #define PLAT_CPU2_BUFFER_RAM_SIZE       8192
 
+/* (0x03E7 >> 1) -> 200 kHz*/
+#define PLAT_CONFIG_EPWM2_PERIOD        (0x03E7 >> 1)
+#define PLAT_CONFIG_EPWM4_PERIOD        (0x03E7 >> 1)
+
+/* Defines control gain */
+#define PLAT_GAIN_CTL                   ( 1.0 / PLAT_CONFIG_EPWM4_PERIOD )
+
+/* Defines gains for ADCs */
+#define PLAT_GAIN_ADC_0                 ( 30.0 / 4095.0 )
+#define PLAT_GAIN_ADC_1                 ( 30.0 / 4095.0 )
+#define PLAT_GAIN_ADC_3                 ( 30.0 / 4095.0 )
+#define PLAT_GAIN_ADC_5                 ( 30.0 / 4095.0 )
+
 /* ADCs */
 /*
  * ADCA - SOC0: ADCIN_A1 (Vin)

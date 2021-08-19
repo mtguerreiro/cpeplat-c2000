@@ -42,8 +42,8 @@ void luenbergerObserve(void *luenbergert, platCPU2ObserverData_t *data){
     float u, vo;
     luenberger_t *luenberger;
 
-    vo = ((float)(*data->adc[5])) * ((float)0.007326007326007326);
-    u = ((float)(*data->u)) * ((float)0.002004008016032064);
+    vo = ((float)(*data->adc[5])) * ((float)PLAT_GAIN_ADC_5);
+    u = ((float)(*data->u)) * ((float)PLAT_GAIN_CTL);
 
     luenberger = (luenberger_t *)luenbergert;
 
