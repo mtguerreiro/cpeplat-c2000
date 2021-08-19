@@ -42,18 +42,6 @@ uint32_t observerSet(observerModeEnum_t mode, uint32_t *p){
 
     observerMode[mode].set(observerMode[mode].observer, p);
 
-//    if ( mode == OBSERVER_MODE_LUENBERGER ){
-//        luenbergerInitialize(&luenberger, p);
-//    }
-//
-//    else if( mode == OBSERVER_MODE_CIMINI ){
-//        obsciminiInitialize(&cimini, p);
-//    }
-//
-//    else{
-//        return 1;
-//    }
-
     return 0;
 }
 //---------------------------------------------------------------------------
