@@ -29,27 +29,30 @@ obscimini_t cimini;
 //---------------------------------------------------------------------------
 void observerInitialize(void){
 
-    observerMode[OBSERVER_MODE_LUENBERGER].run = luenbergerObserve;
     observerMode[OBSERVER_MODE_LUENBERGER].observer = (void *)&luenberger;
+    observerMode[OBSERVER_MODE_LUENBERGER].set = luenbergerInitialize;
+    observerMode[OBSERVER_MODE_LUENBERGER].run = luenbergerObserve;
 
-    observerMode[OBSERVER_MODE_CIMINI].run = obsciminiObserve;
     observerMode[OBSERVER_MODE_CIMINI].observer = (void *)&cimini;
+    observerMode[OBSERVER_MODE_CIMINI].set = obsciminiInitialize;
+    observerMode[OBSERVER_MODE_CIMINI].run = obsciminiObserve;
 }
 //---------------------------------------------------------------------------
 uint32_t observerSet(observerModeEnum_t mode, uint32_t *p){
 
+    observerMode[mode].set(observerMode[mode].observer, p);
 
-    if ( mode == OBSERVER_MODE_LUENBERGER ){
-        luenbergerInitialize(&luenberger, p);
-    }
-
-    else if( mode == OBSERVER_MODE_CIMINI ){
-        obsciminiInitialize(&cimini, p);
-    }
-
-    else{
-        return 1;
-    }
+//    if ( mode == OBSERVER_MODE_LUENBERGER ){
+//        luenbergerInitialize(&luenberger, p);
+//    }
+//
+//    else if( mode == OBSERVER_MODE_CIMINI ){
+//        obsciminiInitialize(&cimini, p);
+//    }
+//
+//    else{
+//        return 1;
+//    }
 
     return 0;
 }

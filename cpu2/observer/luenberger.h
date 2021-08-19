@@ -41,7 +41,7 @@ typedef struct{
 //===========================================================================
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
-void luenbergerInitialize(luenberger_t *luenberger, uint32_t *p);
+void luenbergerInitialize(void *luenbergert, uint32_t *p);
 void luenbergerObserve(void *luenbergert, platCPU2ObserverData_t *data);
 //===========================================================================
 

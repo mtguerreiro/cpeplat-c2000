@@ -16,7 +16,9 @@
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
 //---------------------------------------------------------------------------
-void obsciminiInitialize(obscimini_t *cimini, uint32_t *p){
+void obsciminiInitialize(void *ciminit, uint32_t *p){
+
+    obscimini_t *cimini = (obscimini_t *)ciminit;
 
     cimini->a11 = *((float *)(&p[0]));
     cimini->a12 = *((float *)(&p[1]));

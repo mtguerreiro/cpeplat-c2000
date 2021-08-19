@@ -42,8 +42,8 @@ typedef struct{
 //===========================================================================
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
-void obsciminiInitialize(obscimini_t *cimini, uint32_t *p);
-void obsciminiObserve(void *cimini, platCPU2ObserverData_t *data);
+void obsciminiInitialize(void *ciminit, uint32_t *p);
+void obsciminiObserve(void *ciminit, platCPU2ObserverData_t *data);
 //===========================================================================
 
 #endif /* OBSERVER_OBSCIMINI_H_ */

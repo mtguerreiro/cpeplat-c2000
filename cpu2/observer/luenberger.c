@@ -16,7 +16,9 @@
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
 //---------------------------------------------------------------------------
-void luenbergerInitialize(luenberger_t *luenberger, uint32_t *p){
+void luenbergerInitialize(void *luenbergert, uint32_t *p){
+
+    luenberger_t *luenberger = (luenberger_t *)luenbergert;
 
     luenberger->a11 = *((float *)(&p[0]));
     luenberger->a12 = *((float *)(&p[1]));
