@@ -21,6 +21,7 @@
 //===========================================================================
 typedef enum{
     OBSERVER_MODE_CIMINI = PLAT_CPU2_OBSERVER_MODE_CIMINI,
+    OBSERVER_MODE_LUENBERGER = PLAT_CPU2_OBSERVER_MODE_LUENBERGER,
     OBSERVER_MODE_END = PLAT_CPU2_OBSERVER_MODE_END
 }observerModeEnum_t;
 
@@ -29,15 +30,16 @@ typedef struct{
     float vc;
 }observerStates_t;
 //---------------------------------------------------------------------------
-//typedef void (*controlSet)(void *controller, void *p);
+typedef void (*observerSet_t)(void *observer, uint32_t *p);
 //---------------------------------------------------------------------------
-typedef void (*observerRun)(void *observer, platCPU2ObserverData_t *data);
+typedef void (*observerRun_t)(void *observer, platCPU2ObserverData_t *data);
 //---------------------------------------------------------------------------
 typedef struct{
 
     void *observer;
 
-    observerRun run;
+    observerSet_t set;
+    observerRun_t run;
 
 }observerMode_t;
 //---------------------------------------------------------------------------

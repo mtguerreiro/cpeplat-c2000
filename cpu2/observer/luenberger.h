@@ -1,12 +1,12 @@
 /*
- * obscimini.h
+ * luenberger.h
  *
- *  Created on: 30.07.2021
+ *  Created on: 19.08.2021
  *      Author: mguerreiro
  */
 
-#ifndef OBSERVER_OBSCIMINI_H_
-#define OBSERVER_OBSCIMINI_H_
+#ifndef OBSERVER_LUENBERGER_H_
+#define OBSERVER_LUENBERGER_H_
 
 //===========================================================================
 /*-------------------------------- Includes -------------------------------*/
@@ -22,28 +22,27 @@
 typedef struct{
     float a11;
     float a12;
-    float b11;
-
     float a21;
     float a22;
-    float a23;
-    float a24;
-    float a25;
-    float a26;
+
+    float b11;
+    float b12;
+    float b21;
+    float b22;
 
     float il_h_1;
     float il_h;
 
-    float vc_h_1;
-    float vc_h;
-}obscimini_t;
+    float vo_h_1;
+    float vo_h;
+}luenberger_t;
 //===========================================================================
 
 //===========================================================================
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
-void obsciminiInitialize(void *ciminit, uint32_t *p);
-void obsciminiObserve(void *ciminit, platCPU2ObserverData_t *data);
+void luenbergerInitialize(void *luenbergert, uint32_t *p);
+void luenbergerObserve(void *luenbergert, platCPU2ObserverData_t *data);
 //===========================================================================
 
-#endif /* OBSERVER_OBSCIMINI_H_ */
+#endif /* OBSERVER_LUENBERGER_H_ */

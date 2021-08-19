@@ -11,6 +11,7 @@
 #include "observer.h"
 
 #include "obscimini.h"
+#include "luenberger.h"
 //===========================================================================
 
 //===========================================================================
@@ -18,6 +19,7 @@
 //===========================================================================
 observerMode_t observerMode[OBSERVER_MODE_END];
 
+luenberger_t luenberger;
 obscimini_t cimini;
 //===========================================================================
 
@@ -27,21 +29,18 @@ obscimini_t cimini;
 //---------------------------------------------------------------------------
 void observerInitialize(void){
 
-    observerMode[OBSERVER_MODE_CIMINI].run = obsciminiObserve;
+    observerMode[OBSERVER_MODE_LUENBERGER].observer = (void *)&luenberger;
+    observerMode[OBSERVER_MODE_LUENBERGER].set = luenbergerInitialize;
+    observerMode[OBSERVER_MODE_LUENBERGER].run = luenbergerObserve;
+
     observerMode[OBSERVER_MODE_CIMINI].observer = (void *)&cimini;
+    observerMode[OBSERVER_MODE_CIMINI].set = obsciminiInitialize;
+    observerMode[OBSERVER_MODE_CIMINI].run = obsciminiObserve;
 }
 //---------------------------------------------------------------------------
 uint32_t observerSet(observerModeEnum_t mode, uint32_t *p){
 
-    if( mode == OBSERVER_MODE_CIMINI ){
-
-        obsciminiInitialize(&cimini, p);
-    }
-
-    else{
-        return 1;
-    }
-
+    observerMode[mode].set(observerMode[mode].observer, p);
 
     return 0;
 }
