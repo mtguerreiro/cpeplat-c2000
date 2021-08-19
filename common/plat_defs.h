@@ -40,6 +40,7 @@ typedef struct{
 /* CPU2 observer modes */
 typedef enum{
     PLAT_CPU2_OBSERVER_MODE_NONE = 0,
+    PLAT_CPU2_OBSERVER_MODE_LUENBERGER,
     PLAT_CPU2_OBSERVER_MODE_CIMINI,
     PLAT_CPU2_OBSERVER_MODE_END
 }platCPU2ObserverModeEnum_t;
