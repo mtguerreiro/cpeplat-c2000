@@ -30,8 +30,8 @@
 //=============================================================================
 /*--------------------------------- Defines ---------------------------------*/
 //=============================================================================
-#define MAIN_CONFIG_EPWM2_PERIOD        (0x03E7>>1)
-#define MAIN_CONFIG_EPWM4_PERIOD        (0x03E7>>1)
+#define MAIN_CONFIG_EPWM2_PERIOD        PLAT_CONFIG_EPWM2_PERIOD
+#define MAIN_CONFIG_EPWM4_PERIOD        PLAT_CONFIG_EPWM4_PERIOD
 
 #define PLAT_CPU2_BUFFER_MAX            3
 
