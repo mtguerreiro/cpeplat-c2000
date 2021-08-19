@@ -60,6 +60,13 @@ typedef struct{
 }mainBuffer_t;
 //---------------------------------------------------------------------------
 typedef struct{
+    uint32_t i;
+    uint32_t start;
+    uint32_t end;
+    uint32_t gpio;
+}mainEvent_t;
+//---------------------------------------------------------------------------
+typedef struct{
 
     uint32_t blink;
     uint32_t status;
@@ -76,6 +83,9 @@ typedef struct{
 
     uint32_t observerMode;
     platCPU2ObserverData_t observerData;
+
+    uint32_t eventMode;
+    mainEvent_t event;
 
 }mainControl_t;
 //---------------------------------------------------------------------------
@@ -101,6 +111,9 @@ static void mainInitializeADCISR(void);
 static void mainInitializeEPWM(void);
 static void mainInitializeEPWM2(void);
 static void mainInitializeEPWM4(void);
+
+static void mainPWMEnable(void);
+static void mainPWMDisable(void);
 
 static void mainInitializeControlStructure(void);
 
@@ -135,6 +148,8 @@ static void mainCommandCPU2TripSet(uint32_t data);
 static void mainCommandCPU2TripEnable(uint32_t data);
 static void mainCommandCPU2TripDisable(uint32_t data);
 static void mainCommandCPU2TripRead(uint32_t data);
+
+static void mainCommandCPU2EventSet(uint32_t data);
 
 static __interrupt void mainIPC0ISR(void);
 
@@ -270,7 +285,7 @@ static void mainInitializeADC(void){
     AdcaRegs.ADCSOC2CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
 
     //Flag ADC-A End of Conversion
-    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 0;      // End of SOC0 will set INT1 flag
+    AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 2;      // End of SOC2 will set INT1 flag
     AdcaRegs.ADCINTSEL1N2.bit.INT1E = 1;        // Enable INT1 flag
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Make sure INT1 flag is cleared
 
@@ -289,7 +304,7 @@ static void mainInitializeADC(void){
     AdcbRegs.ADCSOC1CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
 
     //Flag ADC-B Limit
-    AdcbRegs.ADCINTSEL1N2.bit.INT2SEL = 0;      // End of SOC0 will set INT2 flag
+    AdcbRegs.ADCINTSEL1N2.bit.INT2SEL = 1;      // End of SOC1 will set INT2 flag
     AdcbRegs.ADCINTSEL1N2.bit.INT2E = 1;        // Enable INT2 flag
     AdcbRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Make sure INT2 flag is cleared
 
@@ -298,6 +313,10 @@ static void mainInitializeADC(void){
     AdccRegs.ADCSOC0CTL.bit.ACQPS = 14;         // Sample window is 100 SYSCLK cycles
     AdccRegs.ADCSOC0CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
 
+    //Flag ADC-C Limit
+    AdccRegs.ADCINTSEL1N2.bit.INT2SEL = 0;      // End of SOC0 will set INT2 flag
+    AdccRegs.ADCINTSEL1N2.bit.INT2E = 1;        // Enable INT2 flag
+    AdccRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Make sure INT2 flag is cleared
     EDIS;
 }
 //-----------------------------------------------------------------------------
@@ -414,6 +433,7 @@ static void mainInitializeEPWM(void){
     // Initialize System Control
     EALLOW;
     ClkCfgRegs.PERCLKDIVSEL.bit.EPWMCLKDIV = 1;
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC= 0;                // Turn off all clocks at the same time
     EDIS;
 
     EALLOW;
@@ -423,10 +443,10 @@ static void mainInitializeEPWM(void){
     mainInitializeEPWM2();
     mainInitializeEPWM4();
 
-//    // Sync ePWM
-//    EALLOW;
-//    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 1;
-//    EDIS;
+    // Sync ePWM
+    EALLOW;
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 1;               // Turn on all clocks at the same time
+    EDIS;
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeEPWM2(void){
@@ -440,6 +460,9 @@ static void mainInitializeEPWM2(void){
     EPwm2Regs.ETSEL.bit.SOCASEL = 2;            // Select SOCA on period match
     EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
     EPwm2Regs.ETPS.bit.SOCAPRD = 1;             // Generate pulse on 1st event
+
+    //Sets output to high for incoming trip
+    EPwm2Regs.TZCTL.bit.TZA = 2;                // EPWM2A forces to low
     EDIS;
 }
 //-----------------------------------------------------------------------------
@@ -464,8 +487,7 @@ static void mainInitializeEPWM4(void){
      EPwm4Regs.CMPCTL.bit.LOADBMODE = 0;
 
      // Set Compare values
-     //EPwm4Regs.CMPA.bit.CMPA = dutyCycle_count;        // Set compare A value
-     EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
+     EPwm4Regs.CMPA.bit.CMPA = 0;                 // Set compare A value
 
      // Set actions - Active Low
      EPwm4Regs.AQCTLA.bit.ZRO = 2;                // Clear PWM4A on Zero
@@ -482,10 +504,46 @@ static void mainInitializeEPWM4(void){
      EPwm4Regs.DBRED.bit.DBRED = 5;
      EPwm4Regs.DBFED.bit.DBFED = 5;
 
+     //Sets output to high for incoming trip
+     EPwm4Regs.TZCTL.bit.TZA = 1;                 // EPWM4A forces to high
+     EPwm4Regs.TZCTL.bit.TZB = 2;                 // EPWM4B forces to low
+
      /* Enables counter */
-     EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Freeze counter
+     EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Enable Up-count mode
 
      EDIS;
+}
+//-----------------------------------------------------------------------------
+static void mainPWMEnable(void){
+
+    // Start ePWM
+    EALLOW;
+    EPwm4Regs.TZCLR.bit.OST = 1;                    // clear trip zone flags
+    EPwm4Regs.CMPA.bit.CMPA = 0;                    // Set compare A value
+
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC= 1;        // Turn on all clocks at the same time
+    EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
+    EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
+
+    EPwm4Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
+    EDIS;
+}
+//-----------------------------------------------------------------------------
+static void mainPWMDisable(void){
+
+    // Stop ePWM
+    EALLOW;
+
+    EPwm4Regs.TZFRC.bit.OST = 1;                //Trigger Safety Status
+
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC= 0;        // Turn off all clocks
+    EPwm2Regs.ETSEL.bit.SOCAEN = 0;             // Disable SOCA
+    EPwm2Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
+    EPwm2Regs.TBCTR = 0x0000;                   // Clear Counter
+
+    EPwm4Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
+    EPwm4Regs.TBCTR = 0x0000;                   // Clear Counter
+    EDIS;
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeBuffer(void){
@@ -528,17 +586,17 @@ static uint32_t mainBufferUpdate(void){
 //-----------------------------------------------------------------------------
 static void mainInitializeControlStructure(void){
 
+    /* Initializes controllers and observers */
     controlInitialize();
     observerInitialize();
 
-    mainControl.controlData.observer = &mainControl.observerData;
-
-    mainControl.controlMode = 0;
-
-    mainControl.ref = 0;
+    /* Clears status and initializes u and ref to zero */
     mainControl.status = 0;
-
+    mainControl.ref = 0;
     mainControl.u = 0;
+
+    /* Initializes control data */
+    mainControl.controlMode = 0;
 
     mainControl.controlData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
     mainControl.controlData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
@@ -549,6 +607,9 @@ static void mainInitializeControlStructure(void){
 
     mainControl.controlData.u = &mainControl.u;
 
+    /* Initializes observer data */
+    mainControl.controlData.observer = &mainControl.observerData;
+        
     mainControl.observerData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
     mainControl.observerData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
     mainControl.observerData.adc[2] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
@@ -557,6 +618,13 @@ static void mainInitializeControlStructure(void){
     mainControl.observerData.adc[5] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
 
     mainControl.observerData.u = &mainControl.u;
+
+    /* Initializes event data */
+    mainControl.eventMode = 0;
+    mainControl.event.i = 0;
+    mainControl.event.end = 0;
+    mainControl.event.start = 0;
+    mainControl.event.gpio = 0xFFFFFFFF;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandInitializeHandlers(void){
@@ -575,7 +643,6 @@ static void mainCommandInitializeHandlers(void){
     mainControl.handle[PLAT_CMD_CPU2_BUFFER_SAMPLES] = mainCommandCPU2BufferSamples;
     mainControl.handle[PLAT_CMD_CPU2_BUFFER_ADDRESS] = mainCommandCPU2BufferAddress;
 
-
     mainControl.handle[PLAT_CMD_CPU2_CONTROL_MODE_SET] = mainCommandCPU2ControlModeSet;
     mainControl.handle[PLAT_CMD_CPU2_CONTROL_MODE_READ] = mainCommandCPU2ControlModeRead;
 
@@ -589,6 +656,8 @@ static void mainCommandInitializeHandlers(void){
     mainControl.handle[PLAT_CMD_CPU2_TRIP_ENABLE] = mainCommandCPU2TripEnable;
     mainControl.handle[PLAT_CMD_CPU2_TRIP_DISABLE] = mainCommandCPU2TripDisable;
     mainControl.handle[PLAT_CMD_CPU2_TRIP_READ] = mainCommandCPU2TripRead;
+
+    mainControl.handle[PLAT_CMD_CPU2_EVENT_SET] = mainCommandCPU2EventSet;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandStatus(uint32_t data){
@@ -641,22 +710,8 @@ static void mainCommandPWMEnable(uint32_t data){
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 
     mainBufferUpdate();
-
-    // Start ePWM
-    EALLOW;
-
-    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 0;
-
-    EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
-    //EPwm4Regs.TBCTL.bit.CTRMODE = 0;             // Count up
-    EPwm4Regs.TBCTR = 0;
-
-    EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
-    EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
-    EPwm2Regs.TBCTR = 0;
-
-    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 1;
-    EDIS;
+    
+    mainPWMEnable();
 }
 //-----------------------------------------------------------------------------
 static void mainCommandPWMDisable(uint32_t data){
@@ -664,19 +719,8 @@ static void mainCommandPWMDisable(uint32_t data){
     HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
     HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-
-    // Stop ePWM
-    EALLOW;
-
-    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC = 0;
-
-    EPwm4Regs.CMPA.bit.CMPA = 0;        // Set compare A value
-    mainControl.u = 0;
-    //EPwm4Regs.TBCTL.bit.CTRMODE = 3;             //
-
-    EPwm2Regs.ETSEL.bit.SOCAEN = 0;             // Disable SOCA
-    EPwm2Regs.TBCTL.bit.CTRMODE = 3;            // Freezes counter
-    EDIS;
+    
+    mainPWMDisable();
 }
 //-----------------------------------------------------------------------------
 static void mainCommandCPU2BufferSet(uint32_t data){
@@ -1032,6 +1076,24 @@ static void mainCommandCPU2TripRead(uint32_t data){
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }
 //-----------------------------------------------------------------------------
+static void mainCommandCPU2EventSet(uint32_t data){
+
+    uint32_t *p;
+
+    p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
+
+    mainControl.event.gpio = *p++;
+    mainControl.event.start = *p++;
+    mainControl.event.end = *p++;
+
+    mainControl.event.i = 0;
+    mainControl.eventMode = 1;
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
 //=============================================================================
 
 //=============================================================================
@@ -1061,15 +1123,29 @@ static __interrupt void mainADCAISR(void){
 
     GPIO_writePin(PLAT_CPU2_GPIO_2, 1);
 
-    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;      // Clear ADC INT1 flag
-    PieCtrlRegs.PIEACK.all = 0x0001;     // Acknowledge PIE group 1 to enable further interrupts
+    /* Clears ADC INT1 flags and acks PIE group 1 for further interrupts */
+    AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
+    PieCtrlRegs.PIEACK.all = 0x0001;
 
+    /* Checks for event generation */
+    if( mainControl.eventMode != 0 ){
+        if( (mainControl.event.i > mainControl.event.start) && (mainControl.event.i < mainControl.event.end) ){
+            GPIO_writePin(mainControl.event.gpio, 1);
+        }
+        if( mainControl.event.i > mainControl.event.end ){
+            GPIO_writePin(mainControl.event.gpio, 0);
+            mainControl.eventMode = 0;
+        }
+        mainControl.event.i++;
+    }
+
+    /* Executes observer before controller, if enabled */
     if( mainControl.observerMode != PLAT_CPU2_OBSERVER_MODE_NONE ){
         observerObserve((observerModeEnum_t)mainControl.observerMode, \
                         &mainControl.observerData);
     }
 
-
+    /* Executes controller, if enabled */
     if( mainControl.controlMode != PLAT_CPU2_CONTROL_MODE_NONE ){
         u = controlControl((controlModeEnum_t)mainControl.controlMode,\
                            mainControl.ref, &mainControl.controlData);
@@ -1077,8 +1153,10 @@ static __interrupt void mainADCAISR(void){
         mainControl.u = (uint16_t)u;
     }
 
+    /* Updates PWM */
     EPwm4Regs.CMPA.bit.CMPA = mainControl.u;
 
+    /* Saves relevant data to buffers */
     if( mainControl.buffer[0].p != mainControl.buffer[0].pEnd ){
         *mainControl.buffer[0].p++ = mainControl.u;
     }
@@ -1117,68 +1195,44 @@ static __interrupt void mainADCAISR(void){
 static __interrupt void mainADCPPBISR(void){
 
     if( AdcaRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCA_PPB1_TRIP;
         AdcaRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
     }
 
     if( AdcaRegs.ADCEVTSTAT.bit.PPB2TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCA_PPB2_TRIP;
         AdcaRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
     }
 
     if( AdcaRegs.ADCEVTSTAT.bit.PPB3TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCA_PPB3_TRIP;
         AdcaRegs.ADCEVTCLR.bit.PPB3TRIPHI = 1;
     }
 
     if( AdcbRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCB_PPB1_TRIP;
         AdcbRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
     }
 
     if( AdcbRegs.ADCEVTSTAT.bit.PPB2TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCB_PPB2_TRIP;
         AdcbRegs.ADCEVTCLR.bit.PPB2TRIPHI = 1;
     }
 
     if( AdccRegs.ADCEVTSTAT.bit.PPB1TRIPHI ){
-        /* --- Disables PWM --- */
-        mainCommandPWMDisable(0); //TODO: properly disable PWM/system (relays?)
-        HWREG(IPC_BASE + IPC_O_ACK) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        HWREG(IPC_BASE + IPC_O_CLR) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        /* -------------------- */
+        mainPWMDisable();
         mainControl.status |= MAIN_STATUS_ADCC_PPB1_TRIP;
         AdccRegs.ADCEVTCLR.bit.PPB1TRIPHI = 1;
     }
 
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCA INT2 flag
     AdcbRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCB INT2 flag
-    AdccRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCB INT2 flag
+    AdccRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Clear ADCC INT2 flag
     PieCtrlRegs.PIEACK.all = 0x0200;
 }
 //-----------------------------------------------------------------------------

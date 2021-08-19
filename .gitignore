@@ -1,0 +1,4 @@
+cpu2\control\rtwtypes.h
+cpu2\control\ExternalControl.h
+cpu2\control\ExternalControl.c
+cpu2\control\ExternalControl_data.c

@@ -13,6 +13,10 @@
 #include "openloop.h"
 #include "pid.h"
 #include "sfb.h"
+
+// Matlab Interface
+#include "MatlabInterface.h"
+
 #include "dmpc.h"
 //===========================================================================
 
@@ -48,6 +52,9 @@ void controlInitialize(void){
     controlMode[CONTROL_MODE_SFB].run = sfbControl;
     controlMode[CONTROL_MODE_SFB].controller = (void *)&sfb;
 
+    controlMode[CONTROL_MODE_MATLAB].run = matlabControl;
+    controlMode[CONTROL_MODE_MATLAB].controller = 0;
+    
     controlMode[CONTROL_MODE_DMPC].run = dmpcControl;
     controlMode[CONTROL_MODE_DMPC].controller = (void *)&dmpc;
 }
@@ -78,14 +85,17 @@ uint32_t controlSet(controlModeEnum_t mode, uint32_t *p){
         sfbInitialize(&sfb, p);
     }
 
+    else if( mode == CONTROL_MODE_MATLAB){
+        matlabInitialize();
+    }
+
     else if( mode == CONTROL_MODE_DMPC ){
         dmpcInitialize(&dmpc, p);
     }
-
+    
     else{
         return 1;
     }
-
 
     return 0;
 }
