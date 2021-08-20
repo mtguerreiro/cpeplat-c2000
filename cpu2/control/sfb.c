@@ -42,9 +42,16 @@ float sfbControl(void *sfbt, uint16_t ref, platCPU2ControlData_t *data){
 
     sfb = (sfb_t *)sfbt;
 
+    if( data->observer != 0 ){
+        il = data->observer->states[0];
+        vc = data->observer->states[1];
+    }
+    else{
+        vc = ((float)(*data->adc[5])) * ((float)0.007326007326007326);
+        il = ((float)(*data->adc[4])) * ((float)0.022165868319714472) + ((float)-50.0);
+    }
+
     r = ((float)ref) * ((float)0.007326007326007326);
-    vc = ((float)(*data->adc[5])) * ((float)0.007326007326007326);
-    il = ((float)(*data->adc[4])) * ((float)0.022165868319714472) + ((float)-50.0);
 
     e = r - vc;
     zeta = sfb->zeta_1 + sfb->dt * ((float)0.50) * (e + sfb->e_1);

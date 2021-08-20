@@ -136,6 +136,8 @@ static void mainCommandCPU2ControlModeRead(uint32_t data);
 
 static void mainCommandCPU2ObserverModeSet(uint32_t data);
 static void mainCommandCPU2ObserverModeRead(uint32_t data);
+static void mainCommandCPU2ObserverEnable(uint32_t data);
+static void mainCommandCPU2ObserverDisable(uint32_t data);
 
 static void mainCommandCPU2RefSet(uint32_t data);
 static void mainCommandCPU2RefRead(uint32_t data);
@@ -592,7 +594,8 @@ static void mainInitializeControlStructure(void){
     mainControl.u = 0;
 
     /* Initializes control data */
-    mainControl.controlMode = 0;
+    mainControl.controlMode = PLAT_CPU2_CONTROL_MODE_NONE;
+    mainControl.controlData.observer = 0;
 
     mainControl.controlData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
     mainControl.controlData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
@@ -604,8 +607,8 @@ static void mainInitializeControlStructure(void){
     mainControl.controlData.u = &mainControl.u;
 
     /* Initializes observer data */
-    mainControl.controlData.observer = &mainControl.observerData;
-        
+    mainControl.observerMode = PLAT_CPU2_OBSERVER_MODE_NONE;
+
     mainControl.observerData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
     mainControl.observerData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
     mainControl.observerData.adc[2] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
@@ -644,6 +647,8 @@ static void mainCommandInitializeHandlers(void){
 
     mainControl.handle[PLAT_CMD_CPU2_OBSERVER_MODE_SET] = mainCommandCPU2ObserverModeSet;
     mainControl.handle[PLAT_CMD_CPU2_OBSERVER_MODE_READ] = mainCommandCPU2ObserverModeRead;
+    mainControl.handle[PLAT_CMD_CPU2_OBSERVER_ENABLE] = mainCommandCPU2ObserverEnable;
+    mainControl.handle[PLAT_CMD_CPU2_OBSERVER_DISABLE] = mainCommandCPU2ObserverDisable;
 
     mainControl.handle[PLAT_CMD_CPU2_REF_SET] = mainCommandCPU2RefSet;
     mainControl.handle[PLAT_CMD_CPU2_REF_READ] = mainCommandCPU2RefRead;
@@ -880,6 +885,32 @@ static void mainCommandCPU2ObserverModeRead(uint32_t data){
     HWREG(IPC_BASE + IPC_O_SENDDATA) = mainControl.observerMode;
     HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2ObserverEnable(uint32_t data){
+
+    /* Only enables observer if an observer was previously set */
+    if( mainControl.observerMode == PLAT_CPU2_OBSERVER_MODE_NONE ){
+        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_OBSERVER_ENABLE_ERR_NO_OBS_SET;
+        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+        return;
+    }
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+
+    mainControl.controlData.observer = &mainControl.observerData;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2ObserverDisable(uint32_t data){
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+
+    mainControl.controlData.observer = 0;
 }
 //-----------------------------------------------------------------------------
 static void mainCommandCPU2RefSet(uint32_t data){
