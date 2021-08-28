@@ -12,6 +12,7 @@
 
 #include "obscimini.h"
 #include "luenberger.h"
+#include "predictive.h"
 //===========================================================================
 
 //===========================================================================
@@ -21,6 +22,7 @@ observerMode_t observerMode[OBSERVER_MODE_END];
 
 luenberger_t luenberger;
 obscimini_t cimini;
+predictive_t predictive;
 //===========================================================================
 
 //===========================================================================
@@ -36,6 +38,10 @@ void observerInitialize(void){
     observerMode[OBSERVER_MODE_CIMINI].observer = (void *)&cimini;
     observerMode[OBSERVER_MODE_CIMINI].set = obsciminiInitialize;
     observerMode[OBSERVER_MODE_CIMINI].run = obsciminiObserve;
+
+    observerMode[OBSERVER_MODE_PREDICTIVE].observer = (void *)&predictive;
+    observerMode[OBSERVER_MODE_PREDICTIVE].set = predictiveInitialize;
+    observerMode[OBSERVER_MODE_PREDICTIVE].run = predictiveObserve;
 }
 //---------------------------------------------------------------------------
 uint32_t observerSet(observerModeEnum_t mode, uint32_t *p){

@@ -20,8 +20,9 @@
 /*------------------------------- Data types ------------------------------*/
 //===========================================================================
 typedef enum{
-    OBSERVER_MODE_CIMINI = PLAT_CPU2_OBSERVER_MODE_CIMINI,
     OBSERVER_MODE_LUENBERGER = PLAT_CPU2_OBSERVER_MODE_LUENBERGER,
+    OBSERVER_MODE_CIMINI = PLAT_CPU2_OBSERVER_MODE_CIMINI,
+    OBSERVER_MODE_PREDICTIVE = PLAT_CPU2_OBSERVER_PREDICTIVE,
     OBSERVER_MODE_END = PLAT_CPU2_OBSERVER_MODE_END
 }observerModeEnum_t;
 
