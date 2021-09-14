@@ -72,7 +72,7 @@ void obsciminiObserve(void *ciminit, platCPU2ObserverData_t *data){
     cimini->vc_h = cimini->vc_h_1;
 
     data->states[0] = cimini->il_h_1;
-    data->states[1] = cimini->vc_h_1;
+    data->states[1] = vc;
 }
 //---------------------------------------------------------------------------
 //===========================================================================

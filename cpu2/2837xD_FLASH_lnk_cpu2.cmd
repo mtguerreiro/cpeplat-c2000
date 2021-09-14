@@ -8,7 +8,7 @@ PAGE 0 :
    RAMM0           	: origin = 0x0000A2, length = 0x00035E
    RAMD0           	: origin = 0x00B000, length = 0x000800
    RAMLS0          	: origin = 0x008000, length = 0x000800
-   RAMLS1          	: origin = 0x008800, length = 0x000800
+   //RAMLS1          	: origin = 0x008800, length = 0x000800
    RAMLS2      		: origin = 0x009000, length = 0x000800
    RAMLS3      		: origin = 0x009800, length = 0x000800
    //RAMLS4      		: origin = 0x00A000, length = 0x000800
@@ -44,6 +44,7 @@ PAGE 1 :
 //   RAMM1_RSVD      : origin = 0x0007F8, length = 0x000008     /* Reserve and do not use for code as per the errata advisory "Memory: Prefetching Beyond Valid Memory" */
    RAMD1           : origin = 0x00B800, length = 0x000800
 
+   RAMLS1          : origin = 0x008800, length = 0x000800
    RAMLS4_5		   : origin = 0x00A000, length = 0x001000
    //RAMLS4      	   : origin = 0x00A000, length = 0x000800
    //RAMLS5          : origin = 0x00A800, length = 0x000800
@@ -80,19 +81,19 @@ PAGE 1 :
 SECTIONS
 {
    /* Allocate program areas: */
-   .cinit              : > FLASHB      PAGE = 0, ALIGN(8)
-   .text               : > FLASHB      PAGE = 0, ALIGN(8)
+   .cinit              : > FLASHG      PAGE = 0, ALIGN(8)
+   .text               : > FLASHG      PAGE = 0, ALIGN(8)
    codestart           : > BEGIN       PAGE = 0, ALIGN(8)
 
    /* Allocate uninitalized data sections: */
-   .stack              : > RAMM1        PAGE = 1
+   .stack              : > RAMLS1      PAGE = 1
 
    /* Initalized sections go in Flash */
-   .switch             : > FLASHB      PAGE = 0, ALIGN(8)
+   .switch             : > FLASHG      PAGE = 0, ALIGN(8)
    .reset           : > RESET,     PAGE = 0, TYPE = DSECT /* not used, */
    
 #if defined(__TI_EABI__)
-   .init_array         : > FLASHB,       PAGE = 0,       ALIGN(8)
+   .init_array         : > FLASHG,       PAGE = 0,       ALIGN(8)
    .bss                : > RAMLS4_5,       PAGE = 1
    .bss:output         : > RAMLS3,       PAGE = 0
    .bss:cio            : > RAMLS4_5,       PAGE = 1
@@ -101,7 +102,7 @@ SECTIONS
    /* Initalized sections go in Flash */
    .const              : > FLASHF,       PAGE = 0,       ALIGN(8)
 #else
-   .pinit              : > FLASHB,       PAGE = 0,       ALIGN(8)
+   .pinit              : > FLASHG,       PAGE = 0,       ALIGN(8)
    .ebss               : >> RAMLS4_5 | RAMGS0 | RAMGS1,    PAGE = 1
    .esysmem            : > RAMLS4_5,       PAGE = 1
    .cio                : > RAMLS4_5,       PAGE = 1
