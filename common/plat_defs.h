@@ -170,7 +170,8 @@ typedef enum{
 #define PLAT_GAIN_ADC_0                 ( 30.0 / 4095.0 )
 #define PLAT_GAIN_ADC_1                 ( 30.0 / 4095.0 )
 #define PLAT_GAIN_ADC_3                 ( 30.0 / 4095.0 )
-#define PLAT_GAIN_ADC_5                 ( 30.0 / 4095.0 )
+//#define PLAT_GAIN_ADC_5                 ( 30.0 / 4095.0 )
+#define PLAT_GAIN_ADC_5                 ( 28.875 / 4095.0 )
 
 /* ADCs */
 /*
