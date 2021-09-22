@@ -38,8 +38,8 @@ void predictiveObserve(void *predictivet, platCPU2ObserverData_t *data){
     predictive_t *predictive;
 
     vo = ((float)(*data->adc[5])) * ((float)PLAT_GAIN_ADC_5);
-    //il = ((float)(*data->adc[2])) * ((float)0.022165868319714472) + ((float)-50.0);
-    il = ((float)(*data->adc[2])) * ((float)0.022165868319714472) + ((float)-49.6);
+    il = ((float)(*data->adc[2])) * ((float)0.022165868319714472) + ((float)-50.0);
+    //il = ((float)(*data->adc[2])) * ((float)0.022165868319714472) + ((float)-49.6);
     u = ((float)(*data->u)) * ((float)PLAT_GAIN_CTL);
 
     predictive = (predictive_t *)predictivet;

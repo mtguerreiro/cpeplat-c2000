@@ -149,6 +149,8 @@ static void mainCommandCPU2TripRead(uint32_t data);
 
 static void mainCommandCPU2EventSet(uint32_t data);
 
+static void mainCommandCPU2ADCTrim(uint32_t data);
+
 static __interrupt void mainIPC0ISR(void);
 
 static __interrupt void mainADCAISR(void);
@@ -270,17 +272,17 @@ static void mainInitializeADC(void){
     EALLOW;
 
     //ADC-A
-    AdcaRegs.ADCSOC0CTL.bit.CHSEL = 1;          // SOC0 will convert pin A1
-    AdcaRegs.ADCSOC0CTL.bit.ACQPS = 14;         // Sample window is 100 SYSCLK cycles  //i think 15 SYSCLK -> 75ns
-    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
+    AdcaRegs.ADCSOC0CTL.bit.CHSEL = PLAT_CONFIG_ADC_A_SOC0_SEL; // SOC0 will convert pin PLAT_CONFIG_ADC_A_SOC0_SEL
+    AdcaRegs.ADCSOC0CTL.bit.ACQPS = 14;                         // Sample window is 15 SYSCLK cycles (75ns @ 200 MHz)
+    AdcaRegs.ADCSOC0CTL.bit.TRIGSEL = 7;                        // Trigger on ePWM2 SOCA/C
 
-    AdcaRegs.ADCSOC1CTL.bit.CHSEL = 4;          // SOC1 will convert pin A4
-    AdcaRegs.ADCSOC1CTL.bit.ACQPS = 14;         // Sample window is 100 SYSCLK cycles  //i think 15 SYSCLK -> 75ns
-    AdcaRegs.ADCSOC1CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
+    AdcaRegs.ADCSOC1CTL.bit.CHSEL = PLAT_CONFIG_ADC_A_SOC1_SEL; // SOC1 will convert pin PLAT_CONFIG_ADC_A_SOC1_SEL
+    AdcaRegs.ADCSOC1CTL.bit.ACQPS = 14;                         // Sample window is 15 SYSCLK cycles (75ns @ 200 MHz)
+    AdcaRegs.ADCSOC1CTL.bit.TRIGSEL = 7;                        // Trigger on ePWM2 SOCA/C
 
-    AdcaRegs.ADCSOC2CTL.bit.CHSEL = 5;          // SOC2 will convert pin A5
-    AdcaRegs.ADCSOC2CTL.bit.ACQPS = 14;         // Sample window is 100 SYSCLK cycles  //i think 15 SYSCLK -> 75ns
-    AdcaRegs.ADCSOC2CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
+    AdcaRegs.ADCSOC2CTL.bit.CHSEL = PLAT_CONFIG_ADC_A_SOC2_SEL; // SOC2 will convert pin PLAT_CONFIG_ADC_A_SOC2_SEL
+    AdcaRegs.ADCSOC2CTL.bit.ACQPS = 14;                         // Sample window is 15 SYSCLK cycles (75ns @ 200 MHz)
+    AdcaRegs.ADCSOC2CTL.bit.TRIGSEL = 7;                        // Trigger on ePWM2 SOCA/C
 
     //Flag ADC-A End of Conversion
     AdcaRegs.ADCINTSEL1N2.bit.INT1SEL = 2;      // End of SOC2 will set INT1 flag
@@ -293,13 +295,13 @@ static void mainInitializeADC(void){
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Make sure INT2 flag is cleared
 
     //ADC-B
-    AdcbRegs.ADCSOC0CTL.bit.CHSEL = 4;          // SOC0 will convert pin B4
-    AdcbRegs.ADCSOC0CTL.bit.ACQPS = 14;         // Sample window is 100 SYSCLK cycles
-    AdcbRegs.ADCSOC0CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
+    AdcbRegs.ADCSOC0CTL.bit.CHSEL = PLAT_CONFIG_ADC_B_SOC0_SEL; // SOC0 will convert pin PLAT_CONFIG_ADC_B_SOC0_SEL
+    AdcbRegs.ADCSOC0CTL.bit.ACQPS = 14;                         // Sample window is 15 SYSCLK cycles (75ns @ 200 MHz)
+    AdcbRegs.ADCSOC0CTL.bit.TRIGSEL = 7;                        // Trigger on ePWM2 SOCA/C
 
-    AdcbRegs.ADCSOC1CTL.bit.CHSEL = 5;          // SOC1 will convert pin B5
-    AdcbRegs.ADCSOC1CTL.bit.ACQPS = 14;         // Sample window is 100 SYSCLK cycles
-    AdcbRegs.ADCSOC1CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
+    AdcbRegs.ADCSOC1CTL.bit.CHSEL = PLAT_CONFIG_ADC_B_SOC1_SEL; // SOC1 will convert pin PLAT_CONFIG_ADC_B_SOC1_SEL
+    AdcbRegs.ADCSOC1CTL.bit.ACQPS = 14;                         // Sample window is 15 SYSCLK cycles (75ns @ 200 MHz)
+    AdcbRegs.ADCSOC1CTL.bit.TRIGSEL = 7;                        // Trigger on ePWM2 SOCA/C
 
     //Flag ADC-B Limit
     AdcbRegs.ADCINTSEL1N2.bit.INT2SEL = 1;      // End of SOC1 will set INT2 flag
@@ -307,9 +309,9 @@ static void mainInitializeADC(void){
     AdcbRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Make sure INT2 flag is cleared
 
     //ADC-C
-    AdccRegs.ADCSOC0CTL.bit.CHSEL = 4;          // SOC0 will convert pin C4
-    AdccRegs.ADCSOC0CTL.bit.ACQPS = 14;         // Sample window is 100 SYSCLK cycles
-    AdccRegs.ADCSOC0CTL.bit.TRIGSEL = 7;        // Trigger on ePWM2 SOCA/C
+    AdccRegs.ADCSOC0CTL.bit.CHSEL = PLAT_CONFIG_ADC_C_SOC0_SEL; // SOC0 will convert pin PLAT_CONFIG_ADC_C_SOC0_SEL
+    AdccRegs.ADCSOC0CTL.bit.ACQPS = 14;                         // Sample window is 15 SYSCLK cycles (75ns @ 200 MHz)
+    AdccRegs.ADCSOC0CTL.bit.TRIGSEL = 7;                        // Trigger on ePWM2 SOCA/C
 
     //Flag ADC-C Limit
     AdccRegs.ADCINTSEL1N2.bit.INT2SEL = 0;      // End of SOC0 will set INT2 flag
@@ -600,24 +602,24 @@ static void mainInitializeControlStructure(void){
     mainControl.controlMode = PLAT_CPU2_CONTROL_MODE_NONE;
     mainControl.controlData.observer = 0;
 
-    mainControl.controlData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
-    mainControl.controlData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
-    mainControl.controlData.adc[2] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
-    mainControl.controlData.adc[3] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
-    mainControl.controlData.adc[4] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
-    mainControl.controlData.adc[5] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.controlData.adc[PLAT_CONFIG_ADC_A_SOC0_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.controlData.adc[PLAT_CONFIG_ADC_A_SOC1_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.controlData.adc[PLAT_CONFIG_ADC_A_SOC2_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
+    mainControl.controlData.adc[PLAT_CONFIG_ADC_B_SOC0_BUFFER] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.controlData.adc[PLAT_CONFIG_ADC_B_SOC1_BUFFER] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.controlData.adc[PLAT_CONFIG_ADC_C_SOC0_BUFFER] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
 
     mainControl.controlData.u = &mainControl.u;
 
     /* Initializes observer data */
     mainControl.observerMode = PLAT_CPU2_OBSERVER_MODE_NONE;
 
-    mainControl.observerData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
-    mainControl.observerData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
-    mainControl.observerData.adc[2] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
-    mainControl.observerData.adc[3] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
-    mainControl.observerData.adc[4] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
-    mainControl.observerData.adc[5] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.observerData.adc[PLAT_CONFIG_ADC_A_SOC0_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.observerData.adc[PLAT_CONFIG_ADC_A_SOC1_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.observerData.adc[PLAT_CONFIG_ADC_A_SOC2_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
+    mainControl.observerData.adc[PLAT_CONFIG_ADC_B_SOC0_BUFFER] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.observerData.adc[PLAT_CONFIG_ADC_B_SOC1_BUFFER] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.observerData.adc[PLAT_CONFIG_ADC_C_SOC0_BUFFER] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
 
     mainControl.observerData.u = &mainControl.u;
 
@@ -662,6 +664,9 @@ static void mainCommandInitializeHandlers(void){
     mainControl.handle[PLAT_CMD_CPU2_TRIP_READ] = mainCommandCPU2TripRead;
 
     mainControl.handle[PLAT_CMD_CPU2_EVENT_SET] = mainCommandCPU2EventSet;
+
+    mainControl.handle[PLAT_CMD_CPU2_ADC_TRIM] = mainCommandCPU2ADCTrim;
+
 }
 //-----------------------------------------------------------------------------
 static void mainCommandStatus(uint32_t data){
@@ -1120,6 +1125,13 @@ static void mainCommandCPU2EventSet(uint32_t data){
     mainControl.eventMode = 1;
 
     HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
+    HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
+    HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+}
+//-----------------------------------------------------------------------------
+static void mainCommandCPU2ADCTrim(uint32_t data){
+
+    HWREG(IPC_BASE + IPC_O_SENDDATA) = AdccRegs.ADCINLTRIM3;
     HWREG(IPC_BASE + IPC_O_SENDCOM) = 0;
     HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
 }

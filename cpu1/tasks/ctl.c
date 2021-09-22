@@ -94,6 +94,8 @@ static uint32_t ctlCommandCPU2TripRead(serialDataExchange_t *data);
 
 static uint32_t ctlCommandCPU2EventSet(serialDataExchange_t *data);
 
+static uint32_t ctlCommandCPU2ADCTrim(serialDataExchange_t *data);
+
 static __interrupt void ctlADCISR(void);
 //=============================================================================
 
@@ -154,6 +156,8 @@ static void ctlInitialize(void){
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_TRIP_READ, ctlCommandCPU2TripRead);
 
     serialRegisterHandle(PLAT_CMD_CPU1_CPU2_EVENT_SET, ctlCommandCPU2EventSet);
+
+    serialRegisterHandle(PLAT_CMD_CPU1_CPU2_ADC_TRIM, ctlCommandCPU2ADCTrim);
 
     /*
      * Enable ADC ISR. We don't want this interrupt to go through the
@@ -975,6 +979,29 @@ static uint32_t ctlCommandCPU2EventSet(serialDataExchange_t *data){
     return 1;
 }
 //-----------------------------------------------------------------------------
+static uint32_t ctlCommandCPU2ADCTrim(serialDataExchange_t *data){
+
+    uint32_t status, adctrim;
+
+    ctlIPCCommand(PLAT_CMD_CPU2_ADC_TRIM, 0);
+
+    if( ctlIPCCommandResponse(PLAT_IPC_FLAG_CPU2_CPU1_DATA, &status, &adctrim) != 0 ){
+        data->buffer[0] = PLAT_CMD_CPU1_ERR_CPU2_UNRESPONSIVE;
+        data->size = 1;
+    }
+    else{
+        data->buffer[0] = 0;
+        data->buffer[1] = (uint8_t)(adctrim >> 24);
+        data->buffer[2] = (uint8_t)(adctrim >> 16);
+        data->buffer[3] = (uint8_t)(adctrim >> 8);
+        data->buffer[4] = (uint8_t)(adctrim);
+        data->size = 5;
+    }
+
+    data->bufferMode = 0;
+
+    return 1;
+}
 //=============================================================================
 
 
@@ -987,34 +1014,34 @@ static __interrupt void ctlADCISR(void){
     ADC_clearInterruptStatus(ADCA_BASE, ADC_INT_NUMBER1);
     Interrupt_clearACKGroup(INTERRUPT_ACK_GROUP1);
 
-    if( ctlADCBuffer[0].i < ctlADCBuffer[0].size ){
-        ctlADCBuffer[0].buffer[ctlADCBuffer[0].i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)0);
-        ctlADCBuffer[0].i++;
+    if( ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC0_BUFFER].i < ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC0_BUFFER].size ){
+        ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC0_BUFFER].buffer[ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC0_BUFFER].i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)0);
+        ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC0_BUFFER].i++;
     }
 
-    if( ctlADCBuffer[1].i < ctlADCBuffer[1].size ){
-        ctlADCBuffer[1].buffer[ctlADCBuffer[1].i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)1);
-        ctlADCBuffer[1].i++;
+    if( ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC1_BUFFER].i < ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC1_BUFFER].size ){
+        ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC1_BUFFER].buffer[ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC1_BUFFER].i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)1);
+        ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC1_BUFFER].i++;
     }
 
-    if( ctlADCBuffer[2].i < ctlADCBuffer[2].size ){
-        ctlADCBuffer[2].buffer[ctlADCBuffer[2].i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)2);
-        ctlADCBuffer[2].i++;
+    if( ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC2_BUFFER].i < ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC2_BUFFER].size ){
+        ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC2_BUFFER].buffer[ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC2_BUFFER].i] = ADC_readResult(ADCARESULT_BASE, (ADC_SOCNumber)2);
+        ctlADCBuffer[PLAT_CONFIG_ADC_A_SOC2_BUFFER].i++;
     }
 
-    if( ctlADCBuffer[3].i < ctlADCBuffer[3].size ){
-        ctlADCBuffer[3].buffer[ctlADCBuffer[3].i] = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0);
-        ctlADCBuffer[3].i++;
+    if( ctlADCBuffer[PLAT_CONFIG_ADC_B_SOC0_BUFFER].i < ctlADCBuffer[PLAT_CONFIG_ADC_B_SOC0_BUFFER].size ){
+        ctlADCBuffer[PLAT_CONFIG_ADC_B_SOC0_BUFFER].buffer[ctlADCBuffer[PLAT_CONFIG_ADC_B_SOC0_BUFFER].i] = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)0);
+        ctlADCBuffer[PLAT_CONFIG_ADC_B_SOC0_BUFFER].i++;
     }
 
-    if( ctlADCBuffer[4].i < ctlADCBuffer[4].size ){
-        ctlADCBuffer[4].buffer[ctlADCBuffer[4].i] = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)1);
-        ctlADCBuffer[4].i++;
+    if( ctlADCBuffer[PLAT_CONFIG_ADC_B_SOC1_BUFFER].i < ctlADCBuffer[PLAT_CONFIG_ADC_B_SOC1_BUFFER].size ){
+        ctlADCBuffer[PLAT_CONFIG_ADC_B_SOC1_BUFFER].buffer[ctlADCBuffer[PLAT_CONFIG_ADC_B_SOC1_BUFFER].i] = ADC_readResult(ADCBRESULT_BASE, (ADC_SOCNumber)1);
+        ctlADCBuffer[PLAT_CONFIG_ADC_B_SOC1_BUFFER].i++;
     }
 
-    if( ctlADCBuffer[5].i < ctlADCBuffer[5].size ){
-        ctlADCBuffer[5].buffer[ctlADCBuffer[5].i] = ADC_readResult(ADCCRESULT_BASE, (ADC_SOCNumber)0);
-        ctlADCBuffer[5].i++;
+    if( ctlADCBuffer[PLAT_CONFIG_ADC_C_SOC0_BUFFER].i < ctlADCBuffer[PLAT_CONFIG_ADC_C_SOC0_BUFFER].size ){
+        ctlADCBuffer[PLAT_CONFIG_ADC_C_SOC0_BUFFER].buffer[ctlADCBuffer[PLAT_CONFIG_ADC_C_SOC0_BUFFER].i] = ADC_readResult(ADCCRESULT_BASE, (ADC_SOCNumber)0);
+        ctlADCBuffer[PLAT_CONFIG_ADC_C_SOC0_BUFFER].i++;
     }
 }
 //-----------------------------------------------------------------------------

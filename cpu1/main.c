@@ -13,6 +13,8 @@
 #include <ti/sysbios/knl/Task.h>
 
 /* Device */
+#include "driverlib.h"
+#include "device.h"
 #include "inc/hw_ipc.h"
 #include "memcfg.h"
 
@@ -174,6 +176,12 @@ static void mainInitializeCPU2PWM(void){
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeCPU2ADC(void){
+
+    /* ADC calibration */
+    ADC_setMode(ADCA_BASE, ADC_RESOLUTION_12BIT, ADC_MODE_SINGLE_ENDED);
+    ADC_setMode(ADCB_BASE, ADC_RESOLUTION_12BIT, ADC_MODE_SINGLE_ENDED);
+    ADC_setMode(ADCC_BASE, ADC_RESOLUTION_12BIT, ADC_MODE_SINGLE_ENDED);
+//    CalAd
 
     /* Transfers ownership of ADC to CPU2 */
     EALLOW;

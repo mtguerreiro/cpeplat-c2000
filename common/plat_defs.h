@@ -74,6 +74,7 @@ typedef enum{
     PLAT_CMD_CPU1_CPU2_OBSERVER_ENABLE,
     PLAT_CMD_CPU1_CPU2_OBSERVER_DISABLE,
     PLAT_CMD_CPU1_CPU2_EVENT_SET,
+    PLAT_CMD_CPU1_CPU2_ADC_TRIM,
     PLAT_CMD_CPU1_END
 }platCPU1CommandsEnum_t;
 
@@ -101,6 +102,7 @@ typedef enum{
     PLAT_CMD_CPU2_TRIP_DISABLE,
     PLAT_CMD_CPU2_TRIP_READ,
     PLAT_CMD_CPU2_EVENT_SET,
+    PLAT_CMD_CPU2_ADC_TRIM,
     PLAT_CMD_CPU2_END
 }platCPU2CommandsEnum_t;
 
@@ -170,17 +172,49 @@ typedef enum{
 #define PLAT_GAIN_ADC_0                 ( 30.0 / 4095.0 )
 #define PLAT_GAIN_ADC_1                 ( 30.0 / 4095.0 )
 #define PLAT_GAIN_ADC_3                 ( 30.0 / 4095.0 )
+#define PLAT_GAIN_ADC_5                 (3 * (7.98 / 0.805) / 4095.0)
+//#define PLAT_GAIN_ADC_5                 ( 28.875 / 4095.0 )
 //#define PLAT_GAIN_ADC_5                 ( 30.0 / 4095.0 )
-#define PLAT_GAIN_ADC_5                 ( 28.875 / 4095.0 )
+
+/* ADCs mapping (don't change this) */
+#define PLAT_CONFIG_ADC_A1              1
+#define PLAT_CONFIG_ADC_A4              4
+#define PLAT_CONFIG_ADC_A5              5
+#define PLAT_CONFIG_ADC_B4              4
+#define PLAT_CONFIG_ADC_B5              5
+#define PLAT_CONFIG_ADC_C4              4
+
+/*
+ * Index of where measurements will be stored in internal buffers. They must
+ * be from 0 to 5 and each ADC SOC should have a different number. If two
+ * ADCs share the same index, whichever comes later will overwrite the first
+ * one.
+ */
+#define PLAT_CONFIG_ADC_A_SOC0_BUFFER   2
+#define PLAT_CONFIG_ADC_A_SOC1_BUFFER   1
+#define PLAT_CONFIG_ADC_A_SOC2_BUFFER   0
+#define PLAT_CONFIG_ADC_B_SOC0_BUFFER   3
+#define PLAT_CONFIG_ADC_B_SOC1_BUFFER   4
+#define PLAT_CONFIG_ADC_C_SOC0_BUFFER   5
+
+/* SOC settings */
+#define PLAT_CONFIG_ADC_A_SOC0_SEL      PLAT_CONFIG_ADC_A5
+#define PLAT_CONFIG_ADC_A_SOC1_SEL      PLAT_CONFIG_ADC_A4
+#define PLAT_CONFIG_ADC_A_SOC2_SEL      PLAT_CONFIG_ADC_A1
+#define PLAT_CONFIG_ADC_B_SOC0_SEL      PLAT_CONFIG_ADC_B4
+#define PLAT_CONFIG_ADC_B_SOC1_SEL      PLAT_CONFIG_ADC_B5
+#define PLAT_CONFIG_ADC_C_SOC0_SEL      PLAT_CONFIG_ADC_C4
 
 /* ADCs */
 /*
- * ADCA - SOC0: ADCIN_A1 (Vin)
- * ADCA - SOC1: ADCIN_A4 (Vin_buck)
- * ADCA - SOC2: ADCIN_A5 (IL)
- * ADCB - SOC0: ADCIN_B4 (Vout)
- * ADCB - SOC1: ADCIN_B5 (IL_avg)
- * ADCC - SOC0: ADCIN_C4 (Vout_buck)
+ * Buck measurements:
+ *
+ * - ADCA - ADCIN_A1 (Vin)
+ * - ADCA - ADCIN_A4 (Vin_buck)
+ * - ADCA - ADCIN_A5 (IL)
+ * - ADCB - ADCIN_B4 (Vout)
+ * - ADCB - ADCIN_B5 (IL_avg)
+ * - ADCC - ADCIN_C4 (Vout_buck)
  */
 
 //=============================================================================
