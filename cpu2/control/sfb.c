@@ -47,8 +47,8 @@ float sfbControl(void *sfbt, uint16_t ref, platCPU2ControlData_t *data){
         vc = data->observer->states[1];
     }
     else{
-        vc = ((float)(*data->adc[5])) * ((float)PLAT_GAIN_ADC_5);
-        il = ((float)(*data->adc[4])) * ((float)0.022165868319714472) + ((float)-50.0);
+        vc = ((float)(*data->adc[5])) * ((float)PLAT_CONFIG_BUCK_V_OUT_BUCK_GAIN);
+        il = ((float)(*data->adc[2])) * ((float)0.022165868319714472) + ((float)-50.0);
     }
 
     r = ((float)ref) * ((float)0.007326007326007326);

@@ -217,6 +217,23 @@ typedef enum{
  * - ADCC - ADCIN_C4 (Vout_buck)
  */
 
+/* Defines gains for buck measurements */
+#define PLAT_GAIN_ADC_0                 ( 30.0 / 4095.0 )
+#define PLAT_GAIN_ADC_1                 ( 30.0 / 4095.0 )
+#define PLAT_GAIN_ADC_3                 ( 30.0 / 4095.0 )
+#define PLAT_CONFIG_BUCK_V_IN_GAIN              (3 * (16.01 / 1.5822) / 4095)
+#define PLAT_CONFIG_BUCK_V_IN_OFFS              (0.0)
+#define PLAT_CONFIG_BUCK_V_IN_BUCK_GAIN         (3 * (16.01 / 1.5838) / 4095)
+#define PLAT_CONFIG_BUCK_V_IN_BUCK_OFFS         (0.0)
+#define PLAT_CONFIG_BUCK_V_OUT_GAIN             (3 * (8.07 / 0.7970) / 4095.0)
+#define PLAT_CONFIG_BUCK_V_OUT_OFFS             (0.0)
+#define PLAT_CONFIG_BUCK_V_OUT_BUCK_GAIN        (3 * (8.07 / 0.7970) / 4095.0)
+#define PLAT_CONFIG_BUCK_V_OUT_BUCK_OFFS        (0.0)
+#define PLAT_CONFIG_BUCK_IL_GAIN                (3 * (5.9 / 3.9) / 4095 / 50e-3)
+#define PLAT_CONFIG_BUCK_IL_OFFS                (-(2.49 / 50e-3 + 2 * 0.1958))
+#define PLAT_CONFIG_BUCK_IL_AVG_GAIN            (3 * (5.9 / 3.9) / 4095 / 50e-3)
+#define PLAT_CONFIG_BUCK_IL_AVG_OFFS            (-(2.49 / 50e-3))
+
 //=============================================================================
 
 #endif /* PLAT_DEFS_H_ */

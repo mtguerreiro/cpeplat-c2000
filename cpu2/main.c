@@ -367,7 +367,7 @@ static void mainInitializeADCLimits(void){
     AdcaRegs.ADCEVTINTSEL.bit.PPB3TRIPLO = 0;
 
     /* Comment this unless you wrote it yourself */
-    AdcaRegs.ADCPPB3OFFCAL.bit.OFFCAL = 45;
+    //AdcaRegs.ADCPPB3OFFCAL.bit.OFFCAL = 45;
 
     /*
      * Sets ADCB SOC 0 limit. In the buck platform, ADCB SOC0 (ADCIN_B4)
