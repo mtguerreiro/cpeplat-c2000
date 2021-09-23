@@ -166,15 +166,10 @@ typedef enum{
 #define PLAT_CONFIG_EPWM4_PERIOD        (2000 - 1)
 
 /* Defines control gain */
-#define PLAT_GAIN_CTL                   ( 1.0 / PLAT_CONFIG_EPWM4_PERIOD )
+#define PLAT_CONFIG_GAIN_CTL                   ( 1.0 / PLAT_CONFIG_EPWM4_PERIOD )
 
-/* Defines gains for ADCs */
-#define PLAT_GAIN_ADC_0                 ( 30.0 / 4095.0 )
-#define PLAT_GAIN_ADC_1                 ( 30.0 / 4095.0 )
-#define PLAT_GAIN_ADC_3                 ( 30.0 / 4095.0 )
-#define PLAT_GAIN_ADC_5                 (3 * (7.98 / 0.805) / 4095.0)
-//#define PLAT_GAIN_ADC_5                 ( 28.875 / 4095.0 )
-//#define PLAT_GAIN_ADC_5                 ( 30.0 / 4095.0 )
+/* Gain for reference */
+#define PLAT_CONFIG_GAIN_REF            (30.0 / 4095.0)
 
 /* ADCs mapping (don't change this) */
 #define PLAT_CONFIG_ADC_A1              1
@@ -218,9 +213,6 @@ typedef enum{
  */
 
 /* Defines gains for buck measurements */
-#define PLAT_GAIN_ADC_0                 ( 30.0 / 4095.0 )
-#define PLAT_GAIN_ADC_1                 ( 30.0 / 4095.0 )
-#define PLAT_GAIN_ADC_3                 ( 30.0 / 4095.0 )
 #define PLAT_CONFIG_BUCK_V_IN_GAIN              (3 * (16.01 / 1.5822) / 4095)
 #define PLAT_CONFIG_BUCK_V_IN_OFFS              (0.0)
 #define PLAT_CONFIG_BUCK_V_IN_BUCK_GAIN         (3 * (16.01 / 1.5838) / 4095)

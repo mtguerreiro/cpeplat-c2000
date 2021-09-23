@@ -40,13 +40,13 @@ float dmpcControl(void *dmpct, uint16_t ref, platCPU2ControlData_t *data){
 
     dmpc = (dmpc_t *)dmpct;
 
-    r = ((float)ref) * ((float)0.007326007326007326);
+    r = ((float)ref) * ((float)PLAT_CONFIG_GAIN_REF);
 
     dmpc->x[0] =  data->observer->states[0];
     dmpc->x[1] =  data->observer->states[1];
 //    dmpc->x[0] = ((float)(*data->adc[4])) * ((float)0.022165868319714472) + ((float)-50.0);
 //    dmpc->x[1] =  ((float)(*data->adc[3])) * ((float)0.007326007326007326);
-    dmpc->u_1 = ((float)(*data->u)) * ((float)PLAT_GAIN_CTL);
+    dmpc->u_1 = ((float)(*data->u)) * ((float)PLAT_CONFIG_GAIN_CTL);
 
     dmpc->du = dmpcBuckOpt(dmpc->x, dmpc->x_1, r, dmpc->u_1, &dmpc->iters);
 

@@ -48,18 +48,18 @@ float sfbControl(void *sfbt, uint16_t ref, platCPU2ControlData_t *data){
     }
     else{
         vc = ((float)(*data->adc[5])) * ((float)PLAT_CONFIG_BUCK_V_OUT_BUCK_GAIN);
-        il = ((float)(*data->adc[2])) * ((float)0.022165868319714472) + ((float)-50.0);
+        il = (((float)*data->adc[2]) * ((float)PLAT_CONFIG_BUCK_IL_GAIN)) + ((float)PLAT_CONFIG_BUCK_IL_OFFS);
     }
 
-    r = ((float)ref) * ((float)0.007326007326007326);
+    r = ((float)ref) * ((float)PLAT_CONFIG_GAIN_REF);
 
     e = r - vc;
     zeta = sfb->zeta_1 + sfb->dt * ((float)0.50) * (e + sfb->e_1);
 
     u = -sfb->k_il * il - sfb->k_vc * vc + sfb->k_z * zeta;
 
-    if( u > 1 ) u = 1;
-    else if ( u < 0 ) u = 0;
+    if( u > 1 ) u = 1.0;
+    else if ( u < 0 ) u = 0.0;
 
     sfb->e_1 = e;
     sfb->zeta_1 = zeta;
