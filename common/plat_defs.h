@@ -179,19 +179,6 @@ typedef enum{
 #define PLAT_CONFIG_ADC_B5              5
 #define PLAT_CONFIG_ADC_C4              4
 
-///*
-// * Index of where measurements will be stored in internal buffers. They must
-// * be from 0 to 5 and each ADC SOC should have a different number. If two
-// * ADCs share the same index, whichever comes later will overwrite the first
-// * one.
-// */
-//#define PLAT_CONFIG_ADC_A_SOC0_BUFFER   0
-//#define PLAT_CONFIG_ADC_A_SOC1_BUFFER   1
-//#define PLAT_CONFIG_ADC_A_SOC2_BUFFER   2
-//#define PLAT_CONFIG_ADC_B_SOC0_BUFFER   3
-//#define PLAT_CONFIG_ADC_B_SOC1_BUFFER   4
-//#define PLAT_CONFIG_ADC_C_SOC0_BUFFER   5
-
 /* SOC settings */
 #define PLAT_CONFIG_ADC_A_SOC0_SEL      PLAT_CONFIG_ADC_A5
 #define PLAT_CONFIG_ADC_A_SOC1_SEL      PLAT_CONFIG_ADC_A4

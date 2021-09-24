@@ -841,13 +841,15 @@ static void mainCommandCPU2ObserverModeSet(uint32_t data){
         return;
     }
 
-    /* Sets the observer */
-    p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
-    if( observerSet((observerModeEnum_t)data, p) != 0 ){
-        HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
-        HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_OBSERVER_MODE_SET_ERR_INVALID;
-        HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
-        return;
+    if( data != PLAT_CPU2_OBSERVER_MODE_NONE ){
+        /* Sets the observer */
+        p = (uint32_t *)PLAT_CPU1_CPU2_DATA_RAM_ADD;
+        if( observerSet((observerModeEnum_t)data, p) != 0 ){
+            HWREG(IPC_BASE + IPC_O_SENDDATA) = 0;
+            HWREG(IPC_BASE + IPC_O_SENDCOM) = PLAT_CMD_CPU2_OBSERVER_MODE_SET_ERR_INVALID;
+            HWREG(IPC_BASE + IPC_O_SET) = 1UL << PLAT_IPC_FLAG_CPU2_CPU1_DATA;
+            return;
+        }
     }
 
     HWREG(IPC_BASE + IPC_O_SENDDATA) = data;
