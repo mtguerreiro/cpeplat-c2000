@@ -8,7 +8,6 @@
 /*
  * TODO: IPC0 flag is hard coded in CPU2. Change that.
  * TODO: Register ADCB_EVT
- * TODO: add checking condition for adc limits in isr
  */
 
 //=============================================================================
@@ -324,11 +323,8 @@ static void mainInitializeADCLimits(void){
 
     EALLOW;
 
-    /*
-     * Sets ADCA SOC 0 limit. In the buck platform, ADCA SOC0 (ADCIN_A1)
-     * corresponds to Vin.
-     */
-    AdcaRegs.ADCPPB1CONFIG.bit.CONFIG = 0;  //PPB1A is associated with soc0 -> Vin
+    /* Sets tripping on upper limit for ADC_A_SOC0 */
+    AdcaRegs.ADCPPB1CONFIG.bit.CONFIG = 0;
 
     /* Clears upper and lower limits */
     AdcaRegs.ADCPPB1TRIPHI.bit.LIMITHI = 0;
@@ -338,11 +334,8 @@ static void mainInitializeADCLimits(void){
     AdcaRegs.ADCEVTINTSEL.bit.PPB1TRIPHI = 1;
     AdcaRegs.ADCEVTINTSEL.bit.PPB1TRIPLO = 0;
 
-    /*
-     * Sets ADCA SOC 1 limit. In the buck platform, ADCA SOC1 (ADCIN_A4)
-     * corresponds to Vin_buck.
-     */
-    AdcaRegs.ADCPPB2CONFIG.bit.CONFIG = 1;  //PPB2A is associated with soc1 -> Vin_buck
+    /* Sets tripping on upper limit for ADC_A_SOC1 */
+    AdcaRegs.ADCPPB2CONFIG.bit.CONFIG = 1;
 
     /* Clears upper and lower limits */
     AdcaRegs.ADCPPB2TRIPHI.bit.LIMITHI = 0;
@@ -352,11 +345,8 @@ static void mainInitializeADCLimits(void){
     AdcaRegs.ADCEVTINTSEL.bit.PPB2TRIPHI = 1;
     AdcaRegs.ADCEVTINTSEL.bit.PPB2TRIPLO = 0;
 
-    /*
-     * Sets ADCA SOC 2 limit. In the buck platform, ADCA SOC2 (ADCIN_A5)
-     * corresponds to IL.
-     */
-    AdcaRegs.ADCPPB3CONFIG.bit.CONFIG = 2;  //PPB3A is associated with soc2 -> IL
+    /* Sets tripping on upper limit for ADC_A_SOC2 */
+    AdcaRegs.ADCPPB3CONFIG.bit.CONFIG = 2;
 
     /* Clears upper and lower limits */
     AdcaRegs.ADCPPB3TRIPHI.bit.LIMITHI = 0;
@@ -366,11 +356,8 @@ static void mainInitializeADCLimits(void){
     AdcaRegs.ADCEVTINTSEL.bit.PPB3TRIPHI = 1;
     AdcaRegs.ADCEVTINTSEL.bit.PPB3TRIPLO = 0;
 
-    /*
-     * Sets ADCB SOC 0 limit. In the buck platform, ADCB SOC0 (ADCIN_B4)
-     * corresponds to Vout.
-     */
-    AdcbRegs.ADCPPB1CONFIG.bit.CONFIG = 0;  //PPB1B is associated with soc0 -> Vout
+    /* Sets tripping on upper limit for ADC_B_SOC0 */
+    AdcbRegs.ADCPPB1CONFIG.bit.CONFIG = 0;
 
     /* Clears upper and lower limits */
     AdcbRegs.ADCPPB1TRIPHI.bit.LIMITHI = 0;
@@ -380,11 +367,8 @@ static void mainInitializeADCLimits(void){
     AdcbRegs.ADCEVTINTSEL.bit.PPB1TRIPHI = 1;
     AdcbRegs.ADCEVTINTSEL.bit.PPB1TRIPLO = 0;
 
-    /*
-     * Sets ADCB SOC 1 limit. In the buck platform, ADCB SOC1 (ADCIN_B5)
-     * corresponds to IL_avg.
-     */
-    AdcbRegs.ADCPPB2CONFIG.bit.CONFIG = 1;  //PPB2B is associated with soc1 -> IL_avg
+    /* Sets tripping on upper limit for ADC_B_SOC1 */
+    AdcbRegs.ADCPPB2CONFIG.bit.CONFIG = 1;
 
     /* Clears upper and lower limits */
     AdcbRegs.ADCPPB2TRIPHI.bit.LIMITHI = 0;
@@ -394,11 +378,8 @@ static void mainInitializeADCLimits(void){
     AdcbRegs.ADCEVTINTSEL.bit.PPB2TRIPHI = 1;
     AdcbRegs.ADCEVTINTSEL.bit.PPB2TRIPLO = 0;
 
-    /*
-     * Sets ADCC SOC 0 limit. In the buck platform, ADCC SOC0 (ADCIN_C4)
-     * corresponds to Vout_buck.
-     */
-    AdccRegs.ADCPPB1CONFIG.bit.CONFIG = 0;  //PPB1C is associated with soc0 -> Vout_buck
+    /* Sets tripping on upper limit for ADC_C_SOC0 */
+    AdccRegs.ADCPPB1CONFIG.bit.CONFIG = 0;
 
     /* Clears upper and lower limits */
     AdccRegs.ADCPPB1TRIPHI.bit.LIMITHI = 0;
@@ -495,7 +476,6 @@ static void mainInitializeEPWM4(void){
 
      EPwm4Regs.AQCTLB.bit.ZRO = 1;                // Set PWM4B on Zero
      EPwm4Regs.AQCTLB.bit.CAU = 2;                // Clear PWM4B on event A, up count
-
 
      // Active Low complementary PWMs - setup the deadband - spruhm8i - page 1994
      EPwm4Regs.DBCTL.bit.OUT_MODE = 3;
@@ -1160,7 +1140,7 @@ static __interrupt void mainADCAISR(void){
 
     float u;
 
-    GPIO_writePin(PLAT_CPU2_GPIO_2, 1);
+    //GPIO_writePin(PLAT_CPU2_GPIO_2, 1);
 
     /* Clears ADC INT1 flags and acks PIE group 1 for further interrupts */
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
@@ -1222,24 +1202,7 @@ static __interrupt void mainADCAISR(void){
         *mainControl.buffer[3].p++ = (uint16_t)(data32 >> 16);
     }
 
-//    if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
-//        uint32_t data32;
-//
-//        data32 = *((uint32_t *)(&mainControl.observerData.states[0]));
-//
-//        *mainControl.buffer[1].p++ = (uint16_t)(data32 & 0xFF);
-//        *mainControl.buffer[1].p++ = (uint16_t)(data32 >> 16);
-//    }
-//    if( mainControl.buffer[2].p != mainControl.buffer[2].pEnd ){
-//        uint32_t data32;
-//
-//        data32 = *((uint32_t *)(&mainControl.observerData.states[1]));
-//
-//        *mainControl.buffer[2].p++ = (uint16_t)(data32 & 0xFF);
-//        *mainControl.buffer[2].p++ = (uint16_t)(data32 >> 16);
-//    }
-
-    GPIO_writePin(PLAT_CPU2_GPIO_2, 0);
+    //GPIO_writePin(PLAT_CPU2_GPIO_2, 0);
 }
 //-----------------------------------------------------------------------------
 static __interrupt void mainADCPPBISR(void){
