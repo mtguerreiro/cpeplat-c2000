@@ -32,9 +32,8 @@ typedef struct{
 //===========================================================================
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
-void matlabInitialize(void);
-float matlabControl(void *matlab, uint16_t ref, platCPU2ControlData_t *data);
+void matlabInitialize(void *matlabt, uint32_t *p);
+float matlabControl(void *matlabt, uint16_t ref, platCPU2ControlData_t *data);
 //===========================================================================
-
 
 #endif /* CONTROL_MATLABINTERFACE_H_ */

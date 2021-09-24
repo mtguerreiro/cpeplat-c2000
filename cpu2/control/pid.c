@@ -16,13 +16,17 @@
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
 //---------------------------------------------------------------------------
-void pidInitialize(pid_t *pid, float a1, float a2, float b0, float b1, float b2){
+void pidInitialize(void *pidt, uint32_t *p){
 
-    pid->a1 = a1;
-    pid->a2 = a2;
-    pid->b0 = b0;
-    pid->b1 = b1;
-    pid->b2 = b2;
+    pid_t *pid;
+
+    pid = (pid_t *)pidt;
+
+    pid->a1 = *((float *)(&p[0]));
+    pid->a2 = *((float *)(&p[1]));
+    pid->b0 = *((float *)(&p[2]));
+    pid->b1 = *((float *)(&p[3]));
+    pid->b2 = *((float *)(&p[4]));
 
     pid->e_1 = 0;
     pid->e_2 = 0;

@@ -36,8 +36,8 @@ typedef struct{
 //===========================================================================
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
-void dmpcInitialize(dmpc_t *dmpc, uint32_t *p);
-float dmpcControl(void *dmpc, uint16_t ref, platCPU2ControlData_t *data);
+void dmpcInitialize(void *dmpct, uint32_t *p);
+float dmpcControl(void *dmpct, uint16_t ref, platCPU2ControlData_t *data);
 //===========================================================================
 
 #endif /* CONTROL_DMPC_H_ */

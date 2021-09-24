@@ -43,7 +43,7 @@ typedef struct{
 //===========================================================================
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
-void pidInitialize(pid_t *pid, float a1, float a2, float b0, float b1, float b2);
+void pidInitialize(void *pidt, uint32_t *p);
 float pidControl(void *pidt, uint16_t ref, platCPU2ControlData_t *data);
 //===========================================================================
 

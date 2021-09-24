@@ -16,9 +16,13 @@
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
 //---------------------------------------------------------------------------
-void openloopInitialize(openloop_t *ol, float dc){
+void openloopInitialize(void *olt, uint32_t *p){
 
-    ol->dc = dc;
+    openloop_t *ol;
+
+    ol = (openloop_t *)olt;
+
+    ol->dc = *((float *)(p));
 }
 //---------------------------------------------------------------------------
 float openloopControl(void *olt, uint16_t ref, platCPU2ControlData_t *data){

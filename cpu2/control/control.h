@@ -29,17 +29,16 @@ typedef enum{
 }controlModeEnum_t;
 
 //---------------------------------------------------------------------------
-//typedef void (*controlSet)(void *controller, void *p);
+typedef void (*controlSet_t)(void *controller, uint32_t *p);
 //---------------------------------------------------------------------------
-typedef float (*controlRun)(void *controller, uint16_t ref, platCPU2ControlData_t *data);
+typedef float (*controlRun_t)(void *controller, uint16_t ref, platCPU2ControlData_t *data);
 //---------------------------------------------------------------------------
 typedef struct{
 
     void *controller;
-//
-//    controlSet set;
 
-    controlRun run;
+    controlSet_t set;
+    controlRun_t run;
 
 }controlMode_t;
 //---------------------------------------------------------------------------

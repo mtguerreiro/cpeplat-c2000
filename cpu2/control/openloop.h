@@ -27,8 +27,8 @@ typedef struct{
 //===========================================================================
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
-void openloopInitialize(openloop_t *ol, float dc);
-float openloopControl(void *ol, uint16_t ref, platCPU2ControlData_t *data);
+void openloopInitialize(void *olt, uint32_t *p);
+float openloopControl(void *olt, uint16_t ref, platCPU2ControlData_t *data);
 //===========================================================================
 
 #endif /* CONTROL_OPENLOOP_H_ */

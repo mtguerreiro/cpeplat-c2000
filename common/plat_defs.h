@@ -2,7 +2,7 @@
  * plat_defs.h
  *
  *  Created on: 10.06.2021
- *      Author: mguerreiro
+ *      Author: LRS
  */
 
 #ifndef PLAT_DEFS_H_

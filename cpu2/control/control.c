@@ -2,7 +2,7 @@
  * control.c
  *
  *  Created on: 22.07.2021
- *      Author: mguerreiro
+ *      Author: LRS
  */
 
 //===========================================================================
@@ -43,59 +43,30 @@ dmpc_t dmpc;
 //---------------------------------------------------------------------------
 void controlInitialize(void){
 
-    controlMode[CONTROL_MODE_OL].run = openloopControl;
     controlMode[CONTROL_MODE_OL].controller = (void *)&openloop;
+    controlMode[CONTROL_MODE_OL].run = openloopControl;
+    controlMode[CONTROL_MODE_OL].set = openloopInitialize;
 
-    controlMode[CONTROL_MODE_PID].run = pidControl;
     controlMode[CONTROL_MODE_PID].controller = (void *)&pid;
+    controlMode[CONTROL_MODE_PID].run = pidControl;
+    controlMode[CONTROL_MODE_PID].set = pidInitialize;
 
-    controlMode[CONTROL_MODE_SFB].run = sfbControl;
     controlMode[CONTROL_MODE_SFB].controller = (void *)&sfb;
+    controlMode[CONTROL_MODE_SFB].run = sfbControl;
+    controlMode[CONTROL_MODE_SFB].set = sfbInitialize;
 
-    controlMode[CONTROL_MODE_MATLAB].run = matlabControl;
     controlMode[CONTROL_MODE_MATLAB].controller = 0;
+    controlMode[CONTROL_MODE_MATLAB].run = matlabControl;
+    controlMode[CONTROL_MODE_MATLAB].set = matlabInitialize;
     
-    controlMode[CONTROL_MODE_DMPC].run = dmpcControl;
     controlMode[CONTROL_MODE_DMPC].controller = (void *)&dmpc;
+    controlMode[CONTROL_MODE_DMPC].run = dmpcControl;
+    controlMode[CONTROL_MODE_DMPC].set = dmpcInitialize;
 }
 //---------------------------------------------------------------------------
 uint32_t controlSet(controlModeEnum_t mode, uint32_t *p){
 
-    if( mode == CONTROL_MODE_OL ){
-        float dc;
-
-        dc = *((float *)(p));
-
-        openloopInitialize(&openloop, dc);
-    }
-
-    else if( mode == CONTROL_MODE_PID ){
-        float a1, a2, b0, b1, b2;
-
-        a1 = *((float *)(&p[0]));
-        a2 = *((float *)(&p[1]));
-        b0 = *((float *)(&p[2]));
-        b1 = *((float *)(&p[3]));
-        b2 = *((float *)(&p[4]));
-
-        pidInitialize(&pid, a1, a2, b0, b1, b2);
-    }
-
-    else if( mode == CONTROL_MODE_SFB ){
-        sfbInitialize(&sfb, p);
-    }
-
-    else if( mode == CONTROL_MODE_MATLAB){
-        matlabInitialize();
-    }
-
-    else if( mode == CONTROL_MODE_DMPC ){
-        dmpcInitialize(&dmpc, p);
-    }
-    
-    else{
-        return 1;
-    }
+    controlMode[mode].set(controlMode[mode].controller, p);
 
     return 0;
 }
