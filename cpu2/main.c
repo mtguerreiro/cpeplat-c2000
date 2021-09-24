@@ -366,9 +366,6 @@ static void mainInitializeADCLimits(void){
     AdcaRegs.ADCEVTINTSEL.bit.PPB3TRIPHI = 1;
     AdcaRegs.ADCEVTINTSEL.bit.PPB3TRIPLO = 0;
 
-    /* Comment this unless you wrote it yourself */
-    //AdcaRegs.ADCPPB3OFFCAL.bit.OFFCAL = 45;
-
     /*
      * Sets ADCB SOC 0 limit. In the buck platform, ADCB SOC0 (ADCIN_B4)
      * corresponds to Vout.
@@ -602,24 +599,24 @@ static void mainInitializeControlStructure(void){
     mainControl.controlMode = PLAT_CPU2_CONTROL_MODE_NONE;
     mainControl.controlData.observer = 0;
 
-    mainControl.controlData.adc[PLAT_CONFIG_ADC_A_SOC0_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
-    mainControl.controlData.adc[PLAT_CONFIG_ADC_A_SOC1_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
-    mainControl.controlData.adc[PLAT_CONFIG_ADC_A_SOC2_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
-    mainControl.controlData.adc[PLAT_CONFIG_ADC_B_SOC0_BUFFER] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
-    mainControl.controlData.adc[PLAT_CONFIG_ADC_B_SOC1_BUFFER] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
-    mainControl.controlData.adc[PLAT_CONFIG_ADC_C_SOC0_BUFFER] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.controlData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.controlData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.controlData.adc[2] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
+    mainControl.controlData.adc[3] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.controlData.adc[4] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.controlData.adc[5] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
 
     mainControl.controlData.u = &mainControl.u;
 
     /* Initializes observer data */
     mainControl.observerMode = PLAT_CPU2_OBSERVER_MODE_NONE;
 
-    mainControl.observerData.adc[PLAT_CONFIG_ADC_A_SOC0_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
-    mainControl.observerData.adc[PLAT_CONFIG_ADC_A_SOC1_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
-    mainControl.observerData.adc[PLAT_CONFIG_ADC_A_SOC2_BUFFER] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
-    mainControl.observerData.adc[PLAT_CONFIG_ADC_B_SOC0_BUFFER] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
-    mainControl.observerData.adc[PLAT_CONFIG_ADC_B_SOC1_BUFFER] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
-    mainControl.observerData.adc[PLAT_CONFIG_ADC_C_SOC0_BUFFER] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.observerData.adc[0] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.observerData.adc[1] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.observerData.adc[2] = (uint16_t *)(ADCARESULT_BASE + ADC_RESULTx_OFFSET_BASE + 2);
+    mainControl.observerData.adc[3] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.observerData.adc[4] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
+    mainControl.observerData.adc[5] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
 
     mainControl.observerData.u = &mainControl.u;
 

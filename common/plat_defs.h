@@ -179,18 +179,18 @@ typedef enum{
 #define PLAT_CONFIG_ADC_B5              5
 #define PLAT_CONFIG_ADC_C4              4
 
-/*
- * Index of where measurements will be stored in internal buffers. They must
- * be from 0 to 5 and each ADC SOC should have a different number. If two
- * ADCs share the same index, whichever comes later will overwrite the first
- * one.
- */
-#define PLAT_CONFIG_ADC_A_SOC0_BUFFER   2
-#define PLAT_CONFIG_ADC_A_SOC1_BUFFER   1
-#define PLAT_CONFIG_ADC_A_SOC2_BUFFER   0
-#define PLAT_CONFIG_ADC_B_SOC0_BUFFER   3
-#define PLAT_CONFIG_ADC_B_SOC1_BUFFER   4
-#define PLAT_CONFIG_ADC_C_SOC0_BUFFER   5
+///*
+// * Index of where measurements will be stored in internal buffers. They must
+// * be from 0 to 5 and each ADC SOC should have a different number. If two
+// * ADCs share the same index, whichever comes later will overwrite the first
+// * one.
+// */
+//#define PLAT_CONFIG_ADC_A_SOC0_BUFFER   0
+//#define PLAT_CONFIG_ADC_A_SOC1_BUFFER   1
+//#define PLAT_CONFIG_ADC_A_SOC2_BUFFER   2
+//#define PLAT_CONFIG_ADC_B_SOC0_BUFFER   3
+//#define PLAT_CONFIG_ADC_B_SOC1_BUFFER   4
+//#define PLAT_CONFIG_ADC_C_SOC0_BUFFER   5
 
 /* SOC settings */
 #define PLAT_CONFIG_ADC_A_SOC0_SEL      PLAT_CONFIG_ADC_A5
@@ -200,19 +200,46 @@ typedef enum{
 #define PLAT_CONFIG_ADC_B_SOC1_SEL      PLAT_CONFIG_ADC_B5
 #define PLAT_CONFIG_ADC_C_SOC0_SEL      PLAT_CONFIG_ADC_C4
 
-/* ADCs */
+//=============================================================================
+
+//=============================================================================
+/*---------------------------- Buck definitions -----------------------------*/
+//=============================================================================
 /*
- * Buck measurements:
+ * Buck measurements
  *
- * - ADCA - ADCIN_A1 (Vin)
- * - ADCA - ADCIN_A4 (Vin_buck)
- * - ADCA - ADCIN_A5 (IL)
- * - ADCB - ADCIN_B4 (Vout)
- * - ADCB - ADCIN_B5 (IL_avg)
- * - ADCC - ADCIN_C4 (Vout_buck)
+ * +----------+-------------+-----------+--------+
+ * |    ADC   | Measurement |    SOC    | Buffer |
+ * +----------+-------------+-----------+--------+
+ * | ADCIN_A1 |     V_in    | ADCA_SOC2 |    2   |
+ * +----------+-------------+-----------+--------+
+ * | ADCIN_A4 |  V_in_buck  | ADCA_SOC1 |    1   |
+ * +----------+-------------+-----------+--------+
+ * | ADCIN_B4 |    V_out    | ADCB_SOC0 |    3   |
+ * +----------+-------------+-----------+--------+
+ * | ADCIN_C4 |  V_out_buck | ADCC_SOC0 |    5   |
+ * +----------+-------------+-----------+--------+
+ * | ADCIN_A5 |      IL     | ADCA_SOC0 |    0   |
+ * +----------+-------------+-----------+--------+
+ * | ADCIN_B5 |    IL_avg   | ADCB_SOC1 |    4   |
+ * +----------+-------------+-----------+--------+
  */
 
-/* Defines gains for buck measurements */
+/*
+ * Index of stored buck measurements.
+ *
+ * If any SOC is changed, the buffer index must be changed to reflect where
+ * the measurement is being stored. All control algorithms for the buck
+ * converter rely in these indexes to get the measurements from the buffers.
+ */
+#define PLAT_CONFIG_BUCK_V_IN_BUFFER            2
+#define PLAT_CONFIG_BUCK_V_IN_BUCK_BUFFER       1
+#define PLAT_CONFIG_BUCK_V_OUT_BUFFER           3
+#define PLAT_CONFIG_BUCK_V_OUT_BUCK_BUFFER      5
+#define PLAT_CONFIG_BUCK_IL_BUFFER              0
+#define PLAT_CONFIG_BUCK_IL_AVG_BUCK_BUFFER     4
+
+/* Gains for buck measurements */
 #define PLAT_CONFIG_BUCK_V_IN_GAIN              (3 * (16.01 / 1.5822) / 4095)
 #define PLAT_CONFIG_BUCK_V_IN_OFFS              (0.0)
 #define PLAT_CONFIG_BUCK_V_IN_BUCK_GAIN         (3 * (16.01 / 1.5838) / 4095)

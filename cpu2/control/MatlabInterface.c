@@ -28,18 +28,17 @@ void matlabInitialize(void *matlabt, uint32_t *p){
 //---------------------------------------------------------------------------
 float matlabControl(void *matlabt, uint16_t ref, platCPU2ControlData_t *data){
 
-    float r;
     float u;
 
     // Update Saved ADC Values to ExternalControl Variables
     rtU.V_ref = ((float)ref) * ((float)PLAT_CONFIG_GAIN_REF);
 
-    rtU.Vin = ((float)(*data->adc[0])) * ((float)PLAT_CONFIG_BUCK_V_IN_GAIN);
-    rtU.Vin_buck = ((float)(*data->adc[1])) * ((float)PLAT_CONFIG_BUCK_V_IN_BUCK_GAIN);
-    rtU.IL = ((float)(*data->adc[2])) * ((float)PLAT_CONFIG_BUCK_IL_GAIN) + ((float)PLAT_CONFIG_BUCK_IL_OFFS);
-    rtU.Vout = ((float)(*data->adc[3])) * ((float)PLAT_CONFIG_BUCK_V_OUT_GAIN);
-    rtU.IL_avg = ((float)(*data->adc[4])) * ((float)PLAT_CONFIG_BUCK_IL_AVG_GAIN) + ((float)PLAT_CONFIG_BUCK_IL_AVG_OFFS);
-    rtU.Vout_buck = ((float)(*data->adc[5])) * ((float)PLAT_CONFIG_BUCK_V_OUT_BUCK_GAIN);
+    rtU.Vin = ((float)(*data->adc[PLAT_CONFIG_BUCK_V_IN_BUFFER])) * ((float)PLAT_CONFIG_BUCK_V_IN_GAIN);
+    rtU.Vin_buck = ((float)(*data->adc[PLAT_CONFIG_BUCK_V_IN_BUCK_BUFFER])) * ((float)PLAT_CONFIG_BUCK_V_IN_BUCK_GAIN);
+    rtU.Vout = ((float)(*data->adc[PLAT_CONFIG_BUCK_V_OUT_BUFFER])) * ((float)PLAT_CONFIG_BUCK_V_OUT_GAIN);
+    rtU.Vout_buck = ((float)(*data->adc[PLAT_CONFIG_BUCK_V_OUT_BUCK_BUFFER])) * ((float)PLAT_CONFIG_BUCK_V_OUT_BUCK_GAIN);
+    rtU.IL = ((float)(*data->adc[PLAT_CONFIG_BUCK_IL_BUFFER])) * ((float)PLAT_CONFIG_BUCK_IL_GAIN) + ((float)PLAT_CONFIG_BUCK_IL_OFFS);
+    rtU.IL_avg = ((float)(*data->adc[PLAT_CONFIG_BUCK_IL_AVG_BUCK_BUFFER])) * ((float)PLAT_CONFIG_BUCK_IL_AVG_GAIN) + ((float)PLAT_CONFIG_BUCK_IL_AVG_OFFS);
 
     // Call Embedded Coder C-Code Control Function
     ExternalControl_step();

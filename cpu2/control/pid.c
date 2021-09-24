@@ -46,7 +46,7 @@ float pidControl(void *pidt, uint16_t ref, platCPU2ControlData_t *data){
     pid = (pid_t *)pidt;
 
     r = ((float)ref) * ((float)PLAT_CONFIG_GAIN_REF);
-    y = ((float)(*data->adc[5])) * ((float)PLAT_CONFIG_BUCK_V_OUT_BUCK_GAIN);
+    y = ((float)(*data->adc[PLAT_CONFIG_BUCK_V_OUT_BUCK_BUFFER])) * ((float)PLAT_CONFIG_BUCK_V_OUT_BUCK_GAIN);
 
     e = r - y;
 
