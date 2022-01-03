@@ -18,6 +18,8 @@
 #include "MatlabInterface.h"
 
 #include "dmpc.h"
+
+#include "fcsmpc_tlvsi.h"
 //===========================================================================
 
 //===========================================================================
@@ -35,6 +37,7 @@ openloop_t openloop;
 pid_t pid;
 sfb_t sfb;
 dmpc_t dmpc;
+
 //===========================================================================
 
 //===========================================================================
@@ -62,6 +65,10 @@ void controlInitialize(void){
     controlMode[CONTROL_MODE_DMPC].controller = (void *)&dmpc;
     controlMode[CONTROL_MODE_DMPC].run = dmpcControl;
     controlMode[CONTROL_MODE_DMPC].set = dmpcInitialize;
+
+    controlMode[CONTROL_MODE_FCSMPC_VSI].controller = 0;
+    controlMode[CONTROL_MODE_FCSMPC_VSI].run = fcsmpctlvsiControl;
+    controlMode[CONTROL_MODE_FCSMPC_VSI].set = fcsmpctlvsiInitialize;
 }
 //---------------------------------------------------------------------------
 uint32_t controlSet(controlModeEnum_t mode, uint32_t *p){
