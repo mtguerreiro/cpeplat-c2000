@@ -90,4 +90,9 @@ float fcsmpctlvsiControl(void *fcsmpctlvsit, uint16_t ref, platCPU2ControlData_t
     return J;
 }
 //---------------------------------------------------------------------------
+float fcsmpctlvsiTheta(void){
+
+    return fcsControl.theta;
+}
+//---------------------------------------------------------------------------
 //===========================================================================

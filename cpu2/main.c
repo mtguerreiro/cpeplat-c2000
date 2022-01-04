@@ -1168,8 +1168,10 @@ static __interrupt void mainADCAISR(void){
 
     /* Executes controller, if enabled */
     if( mainControl.controlMode != PLAT_CPU2_CONTROL_MODE_NONE ){
+        GPIO_writePin(PLAT_CPU2_GPIO_2, 1);
         u = controlControl((controlModeEnum_t)mainControl.controlMode,\
                            mainControl.ref, &mainControl.controlData);
+        GPIO_writePin(PLAT_CPU2_GPIO_2, 0);
         u = u * ((float)MAIN_CONFIG_EPWM2_PERIOD);
         mainControl.u = (uint16_t)u;
     }
@@ -1187,20 +1189,23 @@ static __interrupt void mainADCAISR(void){
     }
 
     if( mainControl.buffer[2].p != mainControl.buffer[2].pEnd ){
+        float theta;
         uint32_t data32;
 
-        data32 = *((uint32_t *)(&mainControl.observerData.states[0]));
+        theta = controlFCSVSITheta();
 
-        *mainControl.buffer[2].p++ = (uint16_t)(data32 & 0xFF);
+        data32 = *((uint32_t *)(&theta));
+
+        *mainControl.buffer[2].p++ = (uint16_t)(data32 & 0xFFFF);
         *mainControl.buffer[2].p++ = (uint16_t)(data32 >> 16);
     }
 
     if( mainControl.buffer[3].p != mainControl.buffer[3].pEnd ){
         uint32_t data32;
 
-        data32 = *((uint32_t *)(&mainControl.observerData.states[1]));
+        data32 = *((uint32_t *)(&u));
 
-        *mainControl.buffer[3].p++ = (uint16_t)(data32 & 0xFF);
+        *mainControl.buffer[3].p++ = (uint16_t)(data32 & 0xFFFF);
         *mainControl.buffer[3].p++ = (uint16_t)(data32 >> 16);
     }
 

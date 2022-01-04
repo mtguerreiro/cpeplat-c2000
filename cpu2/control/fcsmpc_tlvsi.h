@@ -24,6 +24,7 @@
 //===========================================================================
 void fcsmpctlvsiInitialize(void *fcsmpctlvsit, uint32_t *p);
 float fcsmpctlvsiControl(void *fcsmpctlvsit, uint16_t ref, platCPU2ControlData_t *data);
+float fcsmpctlvsiTheta(void);
 //===========================================================================
 
 #endif /* CONTROL_FCSMPC_TLVSI_H_ */
