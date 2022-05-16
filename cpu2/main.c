@@ -166,7 +166,7 @@ void main(void){
 
     while(1){
         GPIO_togglePin(DEVICE_GPIO_PIN_LED2);
-        DEVICE_DELAY_US(1000 * mainControl.blink);
+        DEVICE_DELAY_US(1000.0f * mainControl.blink);
     }
 }
 //-----------------------------------------------------------------------------
@@ -1189,15 +1189,12 @@ static __interrupt void mainADCAISR(void){
     }
 
     if( mainControl.buffer[2].p != mainControl.buffer[2].pEnd ){
-        float theta;
-        uint32_t data32;
+        uint32_t sw;
 
-        theta = controlFCSVSITheta();
+        sw = controlFCSVSIsw();
 
-        data32 = *((uint32_t *)(&theta));
+        *mainControl.buffer[2].p++ = (uint16_t)(sw);
 
-        *mainControl.buffer[2].p++ = (uint16_t)(data32 & 0xFFFF);
-        *mainControl.buffer[2].p++ = (uint16_t)(data32 >> 16);
     }
 
     if( mainControl.buffer[3].p != mainControl.buffer[3].pEnd ){

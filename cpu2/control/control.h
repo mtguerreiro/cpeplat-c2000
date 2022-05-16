@@ -52,7 +52,7 @@ void controlInitialize(void);
 float controlControl(controlModeEnum_t mode, uint16_t r, platCPU2ControlData_t *data);
 uint32_t controlSet(controlModeEnum_t mode, uint32_t *p);
 uint32_t controlDMPCIters(void);
-float controlFCSVSITheta(void);
+uint32_t controlFCSVSIsw(void);
 //===========================================================================
 
 #endif /* CONTROL_H_ */

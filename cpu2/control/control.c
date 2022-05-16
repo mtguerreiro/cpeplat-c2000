@@ -92,9 +92,9 @@ uint32_t controlDMPCIters(void){
     return dmpc.iters;
 }
 //---------------------------------------------------------------------------
-float controlFCSVSITheta(void){
+uint32_t controlFCSVSIsw(void){
 
-    return fcsmpctlvsiTheta();
+    return fcsmpcswRead();
 }
 //---------------------------------------------------------------------------
 //===========================================================================

@@ -25,7 +25,9 @@
 #define FCSMPC_TLVSI_VG_GAIN    400.0f / 4095.0f
 #define FCSMPC_TLVSI_VG_OFFS    -200.0f
 
-tlvsiLCLPredictData_t fcsControl;
+uint32_t fcsmpcsw;
+psdtypesABC_t ii, ig, vc, vg;
+//psdtypesABCint_t ii, ig, vc, vg;
 
 //===========================================================================
 /*------------------------------- Functions -------------------------------*/
@@ -33,66 +35,57 @@ tlvsiLCLPredictData_t fcsControl;
 //---------------------------------------------------------------------------
 void fcsmpctlvsiInitialize(void *fcsmpctlvsit, uint32_t *p){
 
-    float V_dc = 650.0f;
-
-    float ts = 1.0f/40e3;
-
-    float w = 314.1592653589793;
-
-    float Lg = 1.8e-3;
-    float Li = 3.4e-3;
-    float Cf = 20e-6;
-
-    float w_ii = 1.0f, w_ig = 400.0f, w_vc = 0.49f;
-
-    tlvsiInitializeParams(&fcsControl, Li, Lg, Cf, V_dc, w, ts, w_ii, w_ig, w_vc);
+    fcsmpcsw = 0;
 }
 //---------------------------------------------------------------------------
 float fcsmpctlvsiControl(void *fcsmpctlvsit, uint16_t ref, platCPU2ControlData_t *data){
 
     float J = 0;
 
-    fcsControl.ii_abc.a = FCSMPC_TLVSI_II_GAIN * ((float)*data->adc[0]) + FCSMPC_TLVSI_II_OFFS;
-    fcsControl.ii_abc.b = FCSMPC_TLVSI_II_GAIN * ((float)*data->adc[1]) + FCSMPC_TLVSI_II_OFFS;
-    fcsControl.ii_abc.c = FCSMPC_TLVSI_II_GAIN * ((float)*data->adc[2]) + FCSMPC_TLVSI_II_OFFS;
+    ii.a = FCSMPC_TLVSI_II_GAIN * ((float)*data->adc[0]) + FCSMPC_TLVSI_II_OFFS;
+    ii.b = FCSMPC_TLVSI_II_GAIN * ((float)*data->adc[1]) + FCSMPC_TLVSI_II_OFFS;
+    ii.c = FCSMPC_TLVSI_II_GAIN * ((float)*data->adc[2]) + FCSMPC_TLVSI_II_OFFS;
 
-    fcsControl.ig_abc.a = FCSMPC_TLVSI_IG_GAIN * ((float)*data->adc[3]) + FCSMPC_TLVSI_IG_OFFS;
-    fcsControl.ig_abc.b = FCSMPC_TLVSI_IG_GAIN * ((float)*data->adc[4]) + FCSMPC_TLVSI_IG_OFFS;
-    fcsControl.ig_abc.c = FCSMPC_TLVSI_IG_GAIN * ((float)*data->adc[5]) + FCSMPC_TLVSI_IG_OFFS;
+    ig.a = FCSMPC_TLVSI_IG_GAIN * ((float)*data->adc[3]) + FCSMPC_TLVSI_IG_OFFS;
+    ig.b = FCSMPC_TLVSI_IG_GAIN * ((float)*data->adc[4]) + FCSMPC_TLVSI_IG_OFFS;
+    ig.c = FCSMPC_TLVSI_IG_GAIN * ((float)*data->adc[5]) + FCSMPC_TLVSI_IG_OFFS;
 
-    fcsControl.vc_abc.a = FCSMPC_TLVSI_VC_GAIN * ((float)*data->adc[0]) + FCSMPC_TLVSI_VC_OFFS;
-    fcsControl.vc_abc.b = FCSMPC_TLVSI_VC_GAIN * ((float)*data->adc[1]) + FCSMPC_TLVSI_VC_OFFS;
-    fcsControl.vc_abc.c = FCSMPC_TLVSI_VC_GAIN * ((float)*data->adc[2]) + FCSMPC_TLVSI_VC_OFFS;
+    vc.a = FCSMPC_TLVSI_VC_GAIN * ((float)*data->adc[0]) + FCSMPC_TLVSI_VC_OFFS;
+    vc.b = FCSMPC_TLVSI_VC_GAIN * ((float)*data->adc[1]) + FCSMPC_TLVSI_VC_OFFS;
+    vc.c = FCSMPC_TLVSI_VC_GAIN * ((float)*data->adc[2]) + FCSMPC_TLVSI_VC_OFFS;
 
-    fcsControl.vg_abc.a = FCSMPC_TLVSI_VG_GAIN * ((float)*data->adc[3]) + FCSMPC_TLVSI_VG_OFFS;
-    fcsControl.vg_abc.b = FCSMPC_TLVSI_VG_GAIN * ((float)*data->adc[4]) + FCSMPC_TLVSI_VG_OFFS;
-    fcsControl.vg_abc.c = FCSMPC_TLVSI_VG_GAIN * ((float)*data->adc[5]) + FCSMPC_TLVSI_VG_OFFS;
+    vg.a = FCSMPC_TLVSI_VG_GAIN * ((float)*data->adc[3]) + FCSMPC_TLVSI_VG_OFFS;
+    vg.b = FCSMPC_TLVSI_VG_GAIN * ((float)*data->adc[4]) + FCSMPC_TLVSI_VG_OFFS;
+    vg.c = FCSMPC_TLVSI_VG_GAIN * ((float)*data->adc[5]) + FCSMPC_TLVSI_VG_OFFS;
 
-//    fcsControl.ii_abc.a = 0.00488471985f;
-//    fcsControl.ii_abc.b = 0.00488471985f;
-//    fcsControl.ii_abc.c = 0.00488471985f;
-//
-//    fcsControl.ig_abc.a = 0.00488471985f;
-//    fcsControl.ig_abc.b = 0.00488471985f;
-//    fcsControl.ig_abc.c = 0.00488471985f;
-//
-//    fcsControl.vc_abc.a = 0.0488433838f;
-//    fcsControl.vc_abc.b = 0.0488433838f;
-//    fcsControl.vc_abc.c = 0.0488433838f;
-//
-//    fcsControl.vg_abc.a = 162.490845f;
-//    fcsControl.vg_abc.b = -81.2210007f;
-//    fcsControl.vg_abc.c = -81.2210007f;
-
-    J = tlvsiOpt(&fcsControl, &fcsControl.ii_abc, &fcsControl.ig_abc,
-                 &fcsControl.vc_abc, &fcsControl.vg_abc);
+    fcsmpcsw = tlvsiOpt(&ii, &ig, &vc, &vg, &J);
 
     return J;
+
+//    fmint_t J;
+//     ii.a = *data->adc[0];
+//     ii.b = *data->adc[1];
+//     ii.c = *data->adc[2];
+//
+//     ig.a = *data->adc[3];
+//     ig.b = *data->adc[4];
+//     ig.c = *data->adc[5];
+//
+//     vc.a = *data->adc[0];
+//     vc.b = *data->adc[1];
+//     vc.c = *data->adc[2];
+//
+//     vg.a = *data->adc[3];
+//     vg.b = *data->adc[4];
+//     vg.c = *data->adc[5];
+//
+//    fcsmpcsw = tlvsiOptFixed(&ii, &ig, &vc, &vg, &J);
+//    return fixedmathitof(J);
 }
 //---------------------------------------------------------------------------
-float fcsmpctlvsiTheta(void){
+uint32_t fcsmpcswRead(void){
 
-    return fcsControl.theta;
+    return fcsmpcsw;
 }
 //---------------------------------------------------------------------------
 //===========================================================================
