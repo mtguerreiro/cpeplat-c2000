@@ -139,6 +139,10 @@ static void mainInitializeCPU2GPIO(void){
     GPIO_setPadConfig(PLAT_CPU2_GPIO_2, GPIO_PIN_TYPE_STD);
     GPIO_setDirectionMode(PLAT_CPU2_GPIO_2, GPIO_DIR_MODE_OUT);
     GPIO_setMasterCore(PLAT_CPU2_GPIO_2, GPIO_CORE_CPU2);
+
+    GPIO_setPadConfig(PLAT_CPU2_GPIO_3, GPIO_PIN_TYPE_STD);
+    GPIO_setDirectionMode(PLAT_CPU2_GPIO_3, GPIO_DIR_MODE_OUT);
+    GPIO_setMasterCore(PLAT_CPU2_GPIO_3, GPIO_CORE_CPU2);
 }
 //-----------------------------------------------------------------------------
 static void mainInitializeCPU2PWM(void){
