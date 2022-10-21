@@ -1043,6 +1043,11 @@ static __interrupt void ctlADCISR(void){
         ctlADCBuffer[5].buffer[ctlADCBuffer[5].i] = ADC_readResult(ADCCRESULT_BASE, (ADC_SOCNumber)0);
         ctlADCBuffer[5].i++;
     }
+
+    if( ctlADCBuffer[6].i < ctlADCBuffer[6].size ){
+        ctlADCBuffer[6].buffer[ctlADCBuffer[6].i] = ADC_readResult(ADCCRESULT_BASE, (ADC_SOCNumber)1);
+        ctlADCBuffer[6].i++;
+    }
 }
 //-----------------------------------------------------------------------------
 //=============================================================================

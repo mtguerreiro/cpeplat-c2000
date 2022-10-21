@@ -1,5 +1,5 @@
 /*
- * dmpc.c
+ * mpc.c
  *
  *  Created on: 02.08.2021
  *      Author: LRS
@@ -8,8 +8,7 @@
 //===========================================================================
 /*------------------------------- Includes --------------------------------*/
 //===========================================================================
-#include "dmpc.h"
-
+#include "mpc.h"
 #include "dmpc_buck.h"
 //===========================================================================
 
@@ -17,26 +16,26 @@
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
 //---------------------------------------------------------------------------
-void dmpcInitialize(void *dmpct, uint32_t *p){
+void mpcInitialize(void *mpct, uint32_t *p){
 
-    dmpc_t *dmpc;
+    mpc_t *mpc;
 
-    dmpc = (dmpc_t *)dmpct;
+    mpc = (mpc_t *)mpct;
 
-    dmpc->x[0] = 0;
-    dmpc->x[1] = 0;
+    mpc->x[0] = 0;
+    mpc->x[1] = 0;
 
-    dmpc->x_1[0] = 0;
-    dmpc->x_1[1] = 0;
+    mpc->x_1[0] = 0;
+    mpc->x_1[1] = 0;
 
-    dmpc->u = 0;
-    dmpc->u_1 = 0;
-    dmpc->du = 0;
+    mpc->u = 0;
+    mpc->u_1 = 0;
+    mpc->du = 0;
 
-    dmpc->iters = 0;
+    mpc->iters = 0;
 }
 //---------------------------------------------------------------------------
-float dmpcControl(void *dmpct, uint16_t ref, platCPU2ControlData_t *data){
+float mpcControl(void *mpct, uint16_t ref, platCPU2ControlData_t *data){
 
     float r;
 
@@ -49,13 +48,13 @@ float dmpcControl(void *dmpct, uint16_t ref, platCPU2ControlData_t *data){
     static float e = 0, e_1 = 0;
     static float int_sat_h = 0.35, int_sat_l = -0.35;
 
-    dmpc_t *dmpc;
+    mpc_t *mpc;
 
-    dmpc = (dmpc_t *)dmpct;
+    mpc = (mpc_t *)mpct;
 
-    dmpc->x[0] =  data->observer->states[0];
-    dmpc->x[1] =  data->observer->states[1];
-    dmpc->u_1 = ((float)(*data->u)) * ((float)PLAT_CONFIG_GAIN_CTL);
+    mpc->x[0] =  data->observer->states[0];
+    mpc->x[1] =  data->observer->states[1];
+    mpc->u_1 = ((float)(*data->u)) * ((float)PLAT_CONFIG_GAIN_CTL);
 
     r = ((float)ref) * ((float)PLAT_CONFIG_GAIN_REF);
 
@@ -68,22 +67,22 @@ float dmpcControl(void *dmpct, uint16_t ref, platCPU2ControlData_t *data){
 
     r = r + v_ref_p_1;
 
-    dmpc->du = dmpcBuckOpt(dmpc->x, dmpc->x_1, r, dmpc->u_1, &dmpc->iters);
+    mpc->du = dmpcBuckOpt(mpc->x, mpc->x_1, r, mpc->u_1, &mpc->iters);
 
-    dmpc->x_1[0] = dmpc->x[0];
-    dmpc->x_1[1] = dmpc->x[1];
+    mpc->x_1[0] = mpc->x[0];
+    mpc->x_1[1] = mpc->x[1];
 
-    dmpc->u = dmpc->u_1 + dmpc->du;
+    mpc->u = mpc->u_1 + mpc->du;
 
-    if( dmpc->u > 1 ) dmpc->u = 1;
-    else if (dmpc->u < 0 ) dmpc->u = 0;
+    if( mpc->u > 1 ) mpc->u = 1;
+    else if ( mpc->u < 0 ) mpc->u = 0;
 
-    dmpc->u_1 = dmpc->u;
+    mpc->u_1 = mpc->u;
 
     v_ref_p = v_ref_p_1;
     e_1 = e;
 
-    return dmpc->u;
+    return mpc->u;
 }
 //---------------------------------------------------------------------------
 //===========================================================================

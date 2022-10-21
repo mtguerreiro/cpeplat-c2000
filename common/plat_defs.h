@@ -27,14 +27,14 @@ typedef enum{
 
 /* CPU2 observer data */
 typedef struct{
-    uint16_t *adc[6];
+    uint16_t *adc[7];
     uint16_t *u;
     float states[2];
 }platCPU2ObserverData_t;
 
 /* CPU2 control data */
 typedef struct{
-    uint16_t *adc[6];
+    uint16_t *adc[7];
     uint16_t *u;
     platCPU2ObserverData_t *observer;
 }platCPU2ControlData_t;
@@ -146,7 +146,7 @@ typedef enum{
 #define PLAT_IPC_FLAG_MEM_OWN           18U
 
 /* RAM section for ADC data (saved by CPU1) */
-#define PLAT_CPU1_ADC_BUFFER_MAX        6
+#define PLAT_CPU1_ADC_BUFFER_MAX        7
 #define PLAT_CPU1_ADC_RAM_SEC           (MEMCFG_SECT_GS6 | MEMCFG_SECT_GS7 | MEMCFG_SECT_GS8 | MEMCFG_SECT_GS9)
 #define PLAT_CPU1_ADC_RAM_ADD           0x00012000
 #define PLAT_CPU1_ADC_RAM_SIZE          (0x001000 * 4)
@@ -179,6 +179,7 @@ typedef enum{
 #define PLAT_CONFIG_ADC_B4              4
 #define PLAT_CONFIG_ADC_B5              5
 #define PLAT_CONFIG_ADC_C4              4
+#define PLAT_CONFIG_ADC_C5              5
 
 /* SOC settings */
 #define PLAT_CONFIG_ADC_A_SOC0_SEL      PLAT_CONFIG_ADC_A5
@@ -187,6 +188,7 @@ typedef enum{
 #define PLAT_CONFIG_ADC_B_SOC0_SEL      PLAT_CONFIG_ADC_B4
 #define PLAT_CONFIG_ADC_B_SOC1_SEL      PLAT_CONFIG_ADC_B5
 #define PLAT_CONFIG_ADC_C_SOC0_SEL      PLAT_CONFIG_ADC_C4
+#define PLAT_CONFIG_ADC_C_SOC1_SEL      PLAT_CONFIG_ADC_C5
 
 //=============================================================================
 
@@ -240,7 +242,8 @@ typedef enum{
 #define PLAT_CONFIG_BUCK_IL_OFFS                (-(2.49 / 50e-3 + 1.4165))
 #define PLAT_CONFIG_BUCK_IL_AVG_GAIN            (3 * (5.9 / 3.9) / 4095 / 50e-3)
 #define PLAT_CONFIG_BUCK_IL_AVG_OFFS            (-(2.49 / 50e-3 + 0.8603))
-
+#define PLAT_CONFIG_BUCK_IO_GAIN                (3 * (3.9 / 2.0) / 4095 / 50e-3)
+#define PLAT_CONFIG_BUCK_IO_OFFS                (-(2.50 / 50e-3 + 2.999657404380524))
 //=============================================================================
 
 #endif /* PLAT_DEFS_H_ */

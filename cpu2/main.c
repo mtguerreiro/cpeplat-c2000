@@ -14,6 +14,7 @@
 /*-------------------------------- Includes ---------------------------------*/
 //=============================================================================
 /* Device */
+#include <mpc.h>
 #include "driverlib.h"
 #include "device.h"
 #include "inc/hw_ipc.h"
@@ -23,7 +24,6 @@
 #include "F2837xD_GlobalVariableDefs.c"
 
 #include "control.h"
-#include "dmpc.h"
 #include "observer.h"
 //=============================================================================
 
@@ -312,8 +312,12 @@ static void mainInitializeADC(void){
     AdccRegs.ADCSOC0CTL.bit.ACQPS = 14;                         // Sample window is 15 SYSCLK cycles (75ns @ 200 MHz)
     AdccRegs.ADCSOC0CTL.bit.TRIGSEL = 7;                        // Trigger on ePWM2 SOCA/C
 
+    AdccRegs.ADCSOC1CTL.bit.CHSEL = PLAT_CONFIG_ADC_C_SOC1_SEL; // SOC1 will convert pin PLAT_CONFIG_ADC_C_SOC0_SEL
+    AdccRegs.ADCSOC1CTL.bit.ACQPS = 14;                         // Sample window is 15 SYSCLK cycles (75ns @ 200 MHz)
+    AdccRegs.ADCSOC1CTL.bit.TRIGSEL = 7;                        // Trigger on ePWM2 SOCA/C
+
     //Flag ADC-C Limit
-    AdccRegs.ADCINTSEL1N2.bit.INT2SEL = 0;      // End of SOC0 will set INT2 flag
+    AdccRegs.ADCINTSEL1N2.bit.INT2SEL = 1;      // End of SOC1 will set INT2 flag
     AdccRegs.ADCINTSEL1N2.bit.INT2E = 1;        // Enable INT2 flag
     AdccRegs.ADCINTFLGCLR.bit.ADCINT2 = 1;      // Make sure INT2 flag is cleared
     EDIS;
@@ -585,6 +589,7 @@ static void mainInitializeControlStructure(void){
     mainControl.controlData.adc[3] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
     mainControl.controlData.adc[4] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
     mainControl.controlData.adc[5] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.controlData.adc[6] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
 
     mainControl.controlData.u = &mainControl.u;
 
@@ -597,6 +602,7 @@ static void mainInitializeControlStructure(void){
     mainControl.observerData.adc[3] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
     mainControl.observerData.adc[4] = (uint16_t *)(ADCBRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
     mainControl.observerData.adc[5] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 0);
+    mainControl.observerData.adc[6] = (uint16_t *)(ADCCRESULT_BASE + ADC_RESULTx_OFFSET_BASE + 1);
 
     mainControl.observerData.u = &mainControl.u;
 
