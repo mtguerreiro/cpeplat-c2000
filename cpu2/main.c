@@ -1148,7 +1148,7 @@ static __interrupt void mainADCAISR(void){
 
     float u;
 
-    //GPIO_writePin(PLAT_CPU2_GPIO_2, 1);
+    GPIO_writePin(PLAT_CPU2_GPIO_2, 1);
 
     /* Clears ADC INT1 flags and acks PIE group 1 for further interrupts */
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
@@ -1210,7 +1210,7 @@ static __interrupt void mainADCAISR(void){
         *mainControl.buffer[3].p++ = (uint16_t)(data32 >> 16);
     }
 
-    //GPIO_writePin(PLAT_CPU2_GPIO_2, 0);
+    GPIO_writePin(PLAT_CPU2_GPIO_2, 0);
 }
 //-----------------------------------------------------------------------------
 static __interrupt void mainADCPPBISR(void){

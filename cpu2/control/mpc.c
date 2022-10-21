@@ -9,7 +9,8 @@
 /*------------------------------- Includes --------------------------------*/
 //===========================================================================
 #include "mpc.h"
-#include "dmpc_buck.h"
+#include "dmpc.h"
+#include "dmpc_defs.h"
 //===========================================================================
 
 //===========================================================================
@@ -37,52 +38,40 @@ void mpcInitialize(void *mpct, uint32_t *p){
 //---------------------------------------------------------------------------
 float mpcControl(void *mpct, uint16_t ref, platCPU2ControlData_t *data){
 
-    float r;
+    static float r[DMPC_CONFIG_NY] = {0.0};
 
-    static float v_ref_p = 0, v_ref_p_1 = 0;
-    static float v_ref_mpc = 0;
-    static float vc = 0;
-    static float ts = 1/50e3;
+    static float xm[DMPC_CONFIG_NXM] = {0.0};
+    static float xm_1[DMPC_CONFIG_NXM] = {0.0};
 
-    static float kp = 0.0, ki = 5000;
-    static float e = 0, e_1 = 0;
-    static float int_sat_h = 0.35, int_sat_l = -0.35;
+    static float u[DMPC_CONFIG_NU + DMPC_CONFIG_ND] = {0.0};
+    //static float u_1[1] = {0.0};
+    static float du[DMPC_CONFIG_NU + DMPC_CONFIG_ND] = {0.0};
 
-    mpc_t *mpc;
+    static uint32_t iters;
 
-    mpc = (mpc_t *)mpct;
+    /* Reference */
+    r[0] =((float)ref) * ((float)PLAT_CONFIG_GAIN_REF);
 
-    mpc->x[0] =  data->observer->states[0];
-    mpc->x[1] =  data->observer->states[1];
-    mpc->u_1 = ((float)(*data->u)) * ((float)PLAT_CONFIG_GAIN_CTL);
+    /* Output current */
+    u[1] = (((float)*data->adc[PLAT_CONFIG_BUCK_IO_BUFFER]) * ((float)PLAT_CONFIG_BUCK_IO_GAIN)) + ((float)PLAT_CONFIG_BUCK_IO_OFFS);
 
-    r = ((float)ref) * ((float)PLAT_CONFIG_GAIN_REF);
+    /* Assembles state vector */
+    xm[0] = (((float)*data->adc[PLAT_CONFIG_BUCK_IL_AVG_BUCK_BUFFER]) * ((float)PLAT_CONFIG_BUCK_IL_AVG_GAIN)) + ((float)PLAT_CONFIG_BUCK_IL_AVG_OFFS);
+    xm[1] = ((float)(*data->adc[PLAT_CONFIG_BUCK_V_OUT_BUCK_BUFFER])) * ((float)PLAT_CONFIG_BUCK_V_OUT_BUCK_GAIN);
 
-    vc = ((float)(*data->adc[PLAT_CONFIG_BUCK_V_OUT_BUCK_BUFFER])) * ((float)PLAT_CONFIG_BUCK_V_OUT_BUCK_GAIN);
+    xm_1[0] = xm[0];
+    xm_1[1] = xm[1];
 
-    e = (((float)r) - vc);
-    v_ref_p_1 = v_ref_p + kp * e + (ki*ts-kp)*e_1;
-    if( v_ref_p_1 > int_sat_h ) v_ref_p_1 = int_sat_h;
-    else if( v_ref_p_1 < int_sat_l ) v_ref_p_1 = int_sat_l;
+    /* Delay compensation */
+    dmpcDelayComp(xm, xm, u);
 
-    r = r + v_ref_p_1;
+    /* Optimization */
+    dmpcOpt(xm, xm_1, r, u, &iters, du);
 
-    mpc->du = dmpcBuckOpt(mpc->x, mpc->x_1, r, mpc->u_1, &mpc->iters);
+    /* Computes u = du + u_1 */
+    u[0] = du[0] + u[0];
 
-    mpc->x_1[0] = mpc->x[0];
-    mpc->x_1[1] = mpc->x[1];
-
-    mpc->u = mpc->u_1 + mpc->du;
-
-    if( mpc->u > 1 ) mpc->u = 1;
-    else if ( mpc->u < 0 ) mpc->u = 0;
-
-    mpc->u_1 = mpc->u;
-
-    v_ref_p = v_ref_p_1;
-    e_1 = e;
-
-    return mpc->u;
+    return u[0] / 20.0f;
 }
 //---------------------------------------------------------------------------
 //===========================================================================

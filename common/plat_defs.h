@@ -228,6 +228,7 @@ typedef enum{
 #define PLAT_CONFIG_BUCK_V_OUT_BUCK_BUFFER      5
 #define PLAT_CONFIG_BUCK_IL_BUFFER              0
 #define PLAT_CONFIG_BUCK_IL_AVG_BUCK_BUFFER     4
+#define PLAT_CONFIG_BUCK_IO_BUFFER              6
 
 /* Gains for buck measurements */
 #define PLAT_CONFIG_BUCK_V_IN_GAIN              (3 * (16 / 1.6588) / 4095)
@@ -242,7 +243,7 @@ typedef enum{
 #define PLAT_CONFIG_BUCK_IL_OFFS                (-(2.49 / 50e-3 + 1.4165))
 #define PLAT_CONFIG_BUCK_IL_AVG_GAIN            (3 * (5.9 / 3.9) / 4095 / 50e-3)
 #define PLAT_CONFIG_BUCK_IL_AVG_OFFS            (-(2.49 / 50e-3 + 0.8603))
-#define PLAT_CONFIG_BUCK_IO_GAIN                (3 * (3.9 / 2.0) / 4095 / 50e-3)
+#define PLAT_CONFIG_BUCK_IO_GAIN                (3 * (3.9 / 2.0) / 4095 / 50e-3 * 0.8237986270022885)
 #define PLAT_CONFIG_BUCK_IO_OFFS                (-(2.50 / 50e-3 + 2.999657404380524))
 //=============================================================================
 
