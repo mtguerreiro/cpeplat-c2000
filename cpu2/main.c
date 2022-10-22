@@ -505,11 +505,11 @@ static void mainPWMEnable(void){
     EPwm4Regs.TZCLR.bit.OST = 1;                    // clear trip zone flags
     EPwm4Regs.CMPA.bit.CMPA = 0;                    // Set compare A value
 
-    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC= 1;        // Turn on all clocks at the same time
     EPwm2Regs.ETSEL.bit.SOCAEN = 1;             // Enable SOCA
     EPwm2Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
 
     EPwm4Regs.TBCTL.bit.CTRMODE = 0;            // Un-freeze and enter up-count mode
+    CpuSysRegs.PCLKCR0.bit.TBCLKSYNC= 1;        // Turn on all clocks at the same time
     EDIS;
 }
 //-----------------------------------------------------------------------------
@@ -1176,7 +1176,7 @@ static __interrupt void mainADCAISR(void){
     if( mainControl.controlMode != PLAT_CPU2_CONTROL_MODE_NONE ){
         u = controlControl((controlModeEnum_t)mainControl.controlMode,\
                            mainControl.ref, &mainControl.controlData);
-        u = u * ((float)MAIN_CONFIG_EPWM2_PERIOD);
+        u = u * ((float)MAIN_CONFIG_EPWM4_PERIOD);
         mainControl.u = (uint16_t)u;
     }
 
