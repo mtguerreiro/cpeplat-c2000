@@ -10,7 +10,6 @@
 //===========================================================================
 #include "dmpc.h"
 
-#include "dmpc_buck.h"
 //===========================================================================
 
 //===========================================================================
@@ -50,7 +49,7 @@ float dmpcControl(void *dmpct, uint16_t ref, platCPU2ControlData_t *data){
     dmpc->x[1] =  data->observer->states[1];
     dmpc->u_1 = ((float)(*data->u)) * ((float)PLAT_CONFIG_GAIN_CTL);
 
-    dmpc->du = dmpcBuckOpt(dmpc->x, dmpc->x_1, r, dmpc->u_1, &dmpc->iters);
+    //dmpc->du = dmpcBuckOpt(dmpc->x, dmpc->x_1, r, dmpc->u_1, &dmpc->iters);
 
     dmpc->x_1[0] = dmpc->x[0];
     dmpc->x_1[1] = dmpc->x[1];
