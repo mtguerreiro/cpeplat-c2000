@@ -481,8 +481,8 @@ static void mainInitializeEPWM4(void){
      EPwm4Regs.DBCTL.bit.OUT_MODE = 3;
      EPwm4Regs.DBCTL.bit.POLSEL = 1;
      EPwm4Regs.DBCTL.bit.IN_MODE = 0;
-     EPwm4Regs.DBRED.bit.DBRED = 5;
-     EPwm4Regs.DBFED.bit.DBFED = 5;
+     EPwm4Regs.DBRED.bit.DBRED = 20;
+     EPwm4Regs.DBFED.bit.DBFED = 20;
 
      //Sets output to high for incoming trip
      EPwm4Regs.TZCTL.bit.TZA = 1;                 // EPWM4A forces to high
