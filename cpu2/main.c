@@ -1142,7 +1142,7 @@ static __interrupt void mainADCAISR(void){
 
     float u;
 
-    //GPIO_writePin(PLAT_CPU2_GPIO_2, 1);
+    GPIO_writePin(PLAT_CPU2_GPIO_2, 1);
 
     /* Clears ADC INT1 flags and acks PIE group 1 for further interrupts */
     AdcaRegs.ADCINTFLGCLR.bit.ADCINT1 = 1;
@@ -1170,7 +1170,7 @@ static __interrupt void mainADCAISR(void){
     if( mainControl.controlMode != PLAT_CPU2_CONTROL_MODE_NONE ){
         u = controlControl((controlModeEnum_t)mainControl.controlMode,\
                            mainControl.ref, &mainControl.controlData);
-        u = u * ((float)MAIN_CONFIG_EPWM2_PERIOD);
+        u = u * ((float)MAIN_CONFIG_EPWM4_PERIOD);
         mainControl.u = (uint16_t)u;
     }
 
@@ -1204,7 +1204,7 @@ static __interrupt void mainADCAISR(void){
         *mainControl.buffer[3].p++ = (uint16_t)(data32 >> 16);
     }
 
-    //GPIO_writePin(PLAT_CPU2_GPIO_2, 0);
+    GPIO_writePin(PLAT_CPU2_GPIO_2, 0);
 }
 //-----------------------------------------------------------------------------
 static __interrupt void mainADCPPBISR(void){

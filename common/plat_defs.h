@@ -162,7 +162,7 @@ typedef enum{
 #define PLAT_CPU2_BUFFER_RAM_SIZE       (0x001000 * 5)
 
 /* (0x03E7 >> 1) -> 200 kHz*/
-#define PLAT_CONFIG_EPWM2_PERIOD        (500 - 1)
+#define PLAT_CONFIG_EPWM2_PERIOD        (2000 - 1)
 #define PLAT_CONFIG_EPWM4_PERIOD        (500 - 1)
 
 /* Defines control gain */
