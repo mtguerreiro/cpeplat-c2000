@@ -14,6 +14,7 @@
 /*-------------------------------- Includes ---------------------------------*/
 //=============================================================================
 /* Device */
+#include <mpc.h>
 #include "driverlib.h"
 #include "device.h"
 #include "inc/hw_ipc.h"
@@ -23,7 +24,6 @@
 #include "F2837xD_GlobalVariableDefs.c"
 
 #include "control.h"
-#include "dmpc.h"
 #include "observer.h"
 //=============================================================================
 
@@ -1183,7 +1183,7 @@ static __interrupt void mainADCAISR(void){
     }
 
     if( mainControl.buffer[1].p != mainControl.buffer[1].pEnd ){
-        *mainControl.buffer[1].p++ = controlDMPCIters();
+        *mainControl.buffer[1].p++ = controlMPCIters();
     }
 
     if( mainControl.buffer[2].p != mainControl.buffer[2].pEnd ){

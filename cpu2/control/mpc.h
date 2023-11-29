@@ -5,8 +5,8 @@
  *      Author: mguerreiro
  */
 
-#ifndef CONTROL_DMPC_H_
-#define CONTROL_DMPC_H_
+#ifndef CONTROL_MPC_H_
+#define CONTROL_MPC_H_
 
 //===========================================================================
 /*-------------------------------- Includes -------------------------------*/
@@ -30,14 +30,14 @@ typedef struct{
     float du;
 
     uint32_t iters;
-}dmpc_t;
+}mpc_t;
 //===========================================================================
 
 //===========================================================================
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
-void dmpcInitialize(void *dmpct, uint32_t *p);
-float dmpcControl(void *dmpct, uint16_t ref, platCPU2ControlData_t *data);
+void mpcInitialize(void *mpct, uint32_t *p);
+float mpcControl(void *mpct, uint16_t ref, platCPU2ControlData_t *data);
 //===========================================================================
 
-#endif /* CONTROL_DMPC_H_ */
+#endif /* CONTROL_MPC_H_ */

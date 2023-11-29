@@ -8,60 +8,62 @@
 //===========================================================================
 /*------------------------------- Includes --------------------------------*/
 //===========================================================================
-#include "dmpc.h"
+#include "mpc.h"
 
+#include "dmpc.h"
 //===========================================================================
 
 //===========================================================================
 /*------------------------------- Functions -------------------------------*/
 //===========================================================================
 //---------------------------------------------------------------------------
-void dmpcInitialize(void *dmpct, uint32_t *p){
+void mpcInitialize(void *mpct, uint32_t *p){
 
-    dmpc_t *dmpc;
+    mpc_t *mpc;
 
-    dmpc = (dmpc_t *)dmpct;
+    mpc = (mpc_t *)mpct;
 
-    dmpc->x[0] = 0;
-    dmpc->x[1] = 0;
+    mpc->x[0] = 0;
+    mpc->x[1] = 0;
 
-    dmpc->x_1[0] = 0;
-    dmpc->x_1[1] = 0;
+    mpc->x_1[0] = 0;
+    mpc->x_1[1] = 0;
 
-    dmpc->u = 0;
-    dmpc->u_1 = 0;
-    dmpc->du = 0;
+    mpc->u = 0;
+    mpc->u_1 = 0;
+    mpc->du = 0;
 
-    dmpc->iters = 0;
+    mpc->iters = 0;
 }
 //---------------------------------------------------------------------------
-float dmpcControl(void *dmpct, uint16_t ref, platCPU2ControlData_t *data){
+float mpcControl(void *mpct, uint16_t ref, platCPU2ControlData_t *data){
 
     float r;
 
-    dmpc_t *dmpc;
+    mpc_t *mpc;
 
-    dmpc = (dmpc_t *)dmpct;
+    mpc = (mpc_t *)mpct;
 
     r = ((float)ref) * ((float)PLAT_CONFIG_GAIN_REF);
 
-    dmpc->x[0] =  data->observer->states[0];
-    dmpc->x[1] =  data->observer->states[1];
-    dmpc->u_1 = ((float)(*data->u)) * ((float)PLAT_CONFIG_GAIN_CTL);
+    mpc->x[0] = (((float)*data->adc[PLAT_CONFIG_BUCK_IL_AVG_BUCK_BUFFER]) * ((float)PLAT_CONFIG_BUCK_IL_AVG_GAIN)) + ((float)PLAT_CONFIG_BUCK_IL_AVG_OFFS);
+    mpc->x[1] = ((float)(*data->adc[PLAT_CONFIG_BUCK_V_OUT_BUCK_BUFFER])) * ((float)PLAT_CONFIG_BUCK_V_OUT_BUCK_GAIN);
 
-    //dmpc->du = dmpcBuckOpt(dmpc->x, dmpc->x_1, r, dmpc->u_1, &dmpc->iters);
+    /* Delay compensation */
+    dmpcDelayComp(mpc->x_1, mpc->x, &mpc->u);
 
-    dmpc->x_1[0] = dmpc->x[0];
-    dmpc->x_1[1] = dmpc->x[1];
+    /* Optimization */
+    dmpcOpt(mpc->x_1, mpc->x, &r, &mpc->u, 0, &mpc->du);
 
-    dmpc->u = dmpc->u_1 + dmpc->du;
+    /* Computes u = du + u_1 */
+    mpc->u = mpc->u + mpc->du;
 
-    if( dmpc->u > 1 ) dmpc->u = 1;
-    else if (dmpc->u < 0 ) dmpc->u = 0;
+    if( mpc->u > 25.0f ) mpc->u = 25.0f;
+    else if (mpc->u < 0 ) mpc->u = 0;
 
-    dmpc->u_1 = dmpc->u;
+    //mpc->u_1 = mpc->u;
 
-    return dmpc->u;
+    return mpc->u / 25.0f;
 }
 //---------------------------------------------------------------------------
 //===========================================================================

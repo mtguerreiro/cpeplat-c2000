@@ -13,11 +13,11 @@
 #include "openloop.h"
 #include "pid.h"
 #include "sfb.h"
+#include "mpc.h"
 
 // Matlab Interface
 #include "MatlabInterface.h"
 
-#include "dmpc.h"
 //===========================================================================
 
 //===========================================================================
@@ -34,7 +34,7 @@ controlMode_t controlMode[CONTROL_MODE_END];
 openloop_t openloop;
 pid_t pid;
 sfb_t sfb;
-dmpc_t dmpc;
+mpc_t mpc;
 //===========================================================================
 
 //===========================================================================
@@ -59,9 +59,9 @@ void controlInitialize(void){
     controlMode[CONTROL_MODE_MATLAB].run = matlabControl;
     controlMode[CONTROL_MODE_MATLAB].set = matlabInitialize;
     
-    controlMode[CONTROL_MODE_DMPC].controller = (void *)&dmpc;
-    controlMode[CONTROL_MODE_DMPC].run = dmpcControl;
-    controlMode[CONTROL_MODE_DMPC].set = dmpcInitialize;
+    controlMode[CONTROL_MODE_MPC].controller = (void *)&mpc;
+    controlMode[CONTROL_MODE_MPC].run = mpcControl;
+    controlMode[CONTROL_MODE_MPC].set = mpcInitialize;
 }
 //---------------------------------------------------------------------------
 uint32_t controlSet(controlModeEnum_t mode, uint32_t *p){
@@ -80,9 +80,9 @@ float controlControl(controlModeEnum_t mode, uint16_t ref, platCPU2ControlData_t
     return u;
 }
 //---------------------------------------------------------------------------
-uint32_t controlDMPCIters(void){
+uint32_t controlMPCIters(void){
 
-    return dmpc.iters;
+    return mpc.iters;
 }
 //---------------------------------------------------------------------------
 //===========================================================================
